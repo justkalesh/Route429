@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Route429 - Developer Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "tertiary-fixed-dim": "#c7c6c4",
+                        "inverse-on-surface": "#ebf1ff",
+                        "surface-container-highest": "#d9e3f9",
+                        "error-container": "#ffdad6",
+                        "on-primary-fixed": "#022016",
+                        "outline-variant": "#c1c8c3",
+                        "surface-bright": "#f9f9ff",
+                        "on-secondary-container": "#6c6244",
+                        "surface-container-high": "#dee8ff",
+                        "tertiary-container": "#434442",
+                        "on-primary-container": "#99b9a9",
+                        "on-secondary-fixed": "#221b04",
+                        "surface-container": "#e7eeff",
+                        "surface-variant": "#d9e3f9",
+                        "inverse-surface": "#273141",
+                        "secondary-fixed": "#f0e1bc",
+                        "on-background": "#121c2c",
+                        "on-error": "#ffffff",
+                        "tertiary-fixed": "#e3e2e0",
+                        "background": "#f9f9ff",
+                        "on-tertiary-fixed": "#1a1c1a",
+                        "on-surface-variant": "#424844",
+                        "surface-container-low": "#f0f3ff",
+                        "secondary-fixed-dim": "#d3c6a2",
+                        "tertiary": "#2d2e2c",
+                        "on-primary-fixed-variant": "#304d40",
+                        "primary-fixed-dim": "#adcebe",
+                        "on-tertiary-container": "#b1b1ae",
+                        "on-surface": "#121c2c",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary": "#685e40",
+                        "secondary-container": "#eddfb9",
+                        "primary-container": "#2d4a3e",
+                        "on-error-container": "#93000a",
+                        "on-secondary-fixed-variant": "#4f462b",
+                        "primary-fixed": "#c9ead9",
+                        "outline": "#727974",
+                        "on-primary": "#ffffff",
+                        "on-tertiary-fixed-variant": "#464745",
+                        "surface-tint": "#476558",
+                        "surface-dim": "#d0daf0",
+                        "inverse-primary": "#adcebe",
+                        "primary": "#163328",
+                        "surface": "#f9f9ff",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "error": "#ba1a1a"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.75rem",
+                        "xl": "1rem",
+                        "full": "9999px"
+                    },
+                    spacing: {
+                        "margin-desktop": "48px",
+                        "sm": "8px",
+                        "max-width": "1280px",
+                        "xxl": "64px",
+                        "gutter": "24px",
+                        "xl": "40px",
+                        "xs": "4px",
+                        "md": "16px",
+                        "margin-mobile": "16px",
+                        "unit": "4px",
+                        "lg": "24px"
+                    },
+                    fontFamily: {
+                        "body-md": ["Inter", "sans-serif"],
+                        "body-sm": ["Inter", "sans-serif"],
+                        "display": ["Geist", "sans-serif"],
+                        "body-lg": ["Inter", "sans-serif"],
+                        "headline-lg-mobile": ["Geist", "sans-serif"],
+                        "headline-lg": ["Geist", "sans-serif"],
+                        "label-caps": ["Inter", "sans-serif"],
+                        "code-md": ["JetBrains Mono", "monospace"],
+                        "headline-md": ["Geist", "sans-serif"]
+                    },
+                    fontSize: {
+                        "body-md": ["16px", { lineHeight: "1.5", fontWeight: "400" }],
+                        "body-sm": ["14px", { lineHeight: "1.5", fontWeight: "400" }],
+                        "display": ["48px", { lineHeight: "1.1", letterSpacing: "-0.02em", fontWeight: "600" }],
+                        "body-lg": ["18px", { lineHeight: "1.6", fontWeight: "400" }],
+                        "headline-lg-mobile": ["24px", { lineHeight: "1.2", fontWeight: "600" }],
+                        "headline-lg": ["32px", { lineHeight: "1.2", letterSpacing: "-0.01em", fontWeight: "600" }],
+                        "label-caps": ["12px", { lineHeight: "1", letterSpacing: "0.05em", fontWeight: "600" }],
+                        "code-md": ["14px", { lineHeight: "1.5", fontWeight: "400" }],
+                        "headline-md": ["24px", { lineHeight: "1.3", fontWeight: "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-color: #f9f9ff;
+            color: #121c2c;
+        }
+        .hide { display: none !important; }
+        .glass-card {
+            background: rgba(253, 245, 230, 0.7); /* soft beige tint */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(213, 199, 163, 0.4);
+        }
+    </style>
+</head>
+<body class="font-body-md text-on-surface antialiased h-screen overflow-hidden flex bg-background selection:bg-primary-container selection:text-on-primary-container">
+<!-- Auth View -->
+<div class="w-full h-full flex items-center justify-center p-md bg-surface-container-low absolute z-50 transition-opacity duration-300" id="auth-view">
+<div class="glass-card w-full max-w-md rounded-xl p-xl shadow-sm relative overflow-hidden">
+<div class="absolute inset-0 opacity-5 pointer-events-none" style="background-image: url('data:image/svg+xml,%3Csvg width=\'20\' height=\'20\' viewBox=\'0 0 20 20\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'%232d4a3e\' fill-opacity=\'1\' fill-rule=\'evenodd\'%3E%3Ccircle cx=\'3\' cy=\'3\' r=\'3\'/%3E%3Ccircle cx=\'13\' cy=\'13\' r=\'3\'/%3E%3C/g%3E%3C/svg%3E');"></div>
+<div class="text-center mb-lg relative z-10">
+<h1 class="font-display text-display text-primary mb-sm tracking-tight">Route429</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant">Secure AI API Proxy</p>
+</div>
+<div class="flex border-b border-outline-variant/40 mb-lg relative z-10">
+<button class="flex-1 pb-sm font-label-caps text-label-caps text-primary border-b-2 border-primary transition-colors">LOGIN</button>
+<button class="flex-1 pb-sm font-label-caps text-label-caps text-on-surface-variant hover:text-primary transition-colors">SIGNUP</button>
+</div>
+<form class="space-y-md relative z-10" onsubmit="event.preventDefault(); showDashboard();">
+<div>
+<label class="block font-body-sm text-body-sm text-on-surface-variant mb-xs">Email</label>
+<input class="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-lg px-md py-sm font-body-md text-body-md focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all" required="" type="email" value="developer@route429.dev"/>
+</div>
+<div>
+<label class="block font-body-sm text-body-sm text-on-surface-variant mb-xs">Password</label>
+<input class="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-lg px-md py-sm font-body-md text-body-md focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all" required="" type="password" value="********"/>
+</div>
+<button class="w-full bg-primary-container text-on-primary rounded-lg py-md font-body-md text-body-md hover:opacity-90 transition-opacity mt-lg shadow-sm" type="submit">
+                    Access Dashboard
+                </button>
+</form>
+</div>
+</div>
+<!-- Dashboard App Shell -->
+<div class="w-full h-full flex hide" id="dashboard-view">
+<!-- SideNav -->
+<nav class="fixed left-0 top-0 h-screen flex flex-col p-lg docked full-height left-0 w-64 bg-surface-container-lowest border-r border-outline-variant/40 shadow-sm z-20">
+<div class="mb-xxl">
+<div class="flex items-center gap-sm mb-sm">
+<span class="material-symbols-outlined text-primary text-3xl">route</span>
+<h2 class="text-headline-md font-headline-md font-extrabold text-primary">Route429</h2>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Developer Dashboard</p>
+</div>
+<div class="flex-1 overflow-y-auto">
+<p class="font-label-caps text-label-caps text-on-surface-variant mb-md px-md">PROJECTS</p>
+<ul class="space-y-sm mb-xl">
+<li>
+<a class="flex items-center gap-md text-primary font-bold border-r-4 border-primary bg-secondary-container/40 rounded-l-lg py-sm px-md transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">folder_open</span>
+<span class="font-body-md text-body-md">Main Production</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md text-on-surface-variant hover:text-primary hover:bg-surface-container rounded-lg py-sm px-md transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">folder</span>
+<span class="font-body-md text-body-md">Staging Beta</span>
+</a>
+</li>
+</ul>
+<button class="w-full bg-surface-container-lowest border border-secondary-container text-on-surface-variant rounded-lg py-sm px-md flex items-center justify-center gap-sm hover:border-primary hover:text-primary transition-colors font-body-sm text-body-sm shadow-sm" onclick="toggleModal('new-project-modal')">
+<span class="material-symbols-outlined text-sm">add</span>
+                    New Project
+                </button>
+</div>
+<div class="mt-auto pt-lg border-t border-outline-variant/20">
+<a class="flex items-center gap-md text-on-surface-variant hover:text-primary hover:bg-surface-container rounded-lg py-sm px-md transition-colors duration-200 mb-sm" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-body-md text-body-md">Settings</span>
+</a>
+<a class="flex items-center gap-md text-on-surface-variant hover:text-error hover:bg-error-container/20 rounded-lg py-sm px-md transition-colors duration-200" href="#" onclick="showAuth()">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-body-md text-body-md">Logout</span>
+</a>
+<div class="mt-md px-md flex items-center gap-sm">
+<div class="w-8 h-8 rounded-full bg-primary-container text-on-primary flex items-center justify-center font-label-caps text-label-caps">DEV</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant truncate">developer@route429.dev</span>
+</div>
+</div>
+</nav>
+<!-- Main Canvas -->
+<main class="flex-1 ml-64 flex flex-col h-full bg-background overflow-hidden relative">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center h-16 px-margin-desktop bg-surface docked full-width top-0 border-b border-outline-variant/40 z-10 shrink-0">
+<div class="flex items-center gap-lg">
+<h1 class="font-headline-md text-headline-md font-bold text-primary">Main Production</h1>
+<div class="flex gap-sm">
+<span class="bg-secondary-container/40 text-on-secondary-fixed-variant px-sm py-xs rounded text-xs font-code-md font-medium border border-secondary-container/60">Google Gemini</span>
+<span class="bg-surface-container-high text-on-surface px-sm py-xs rounded text-xs font-code-md font-medium border border-outline-variant/30">3 Active Keys</span>
+</div>
+</div>
+<div class="flex items-center gap-md">
+<a class="text-on-surface-variant hover:text-primary transition-colors font-body-sm text-body-sm" href="#">Documentation</a>
+<button class="text-on-surface-variant hover:text-primary transition-colors p-sm rounded-full hover:bg-surface-container"><span class="material-symbols-outlined">help_outline</span></button>
+</div>
+</header>
+<div class="flex-1 overflow-y-auto p-margin-desktop pb-xxl">
+<div class="max-w-4xl mx-auto space-y-xl">
+<!-- Proxy Endpoint Card -->
+<section class="bg-surface-container-lowest border border-outline-variant/40 rounded-xl p-lg shadow-sm hover:border-outline-variant/60 transition-colors">
+<h3 class="font-body-lg text-body-lg font-medium text-on-surface mb-sm flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary">link</span>
+                            Proxy Endpoint
+                        </h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-md">Replace standard API base URLs with your Route429 proxy endpoint to enable key rotation and rate limiting.</p>
+<div class="flex items-center gap-sm">
+<div class="flex-1 bg-surface-container-low border border-outline-variant/40 rounded-lg p-sm font-code-md text-code-md text-on-surface overflow-x-auto flex items-center">
+<code class="text-primary font-bold text-lg" id="proxy-url">https://route429.dev/p/main-production/</code>
+</div>
+<button class="bg-primary-container text-on-primary hover:opacity-90 p-sm px-md rounded-lg transition-colors flex items-center justify-center shrink-0 shadow-sm" onclick="copyText('proxy-url')" title="Copy to clipboard">
+<span class="material-symbols-outlined text-sm mr-xs">content_copy</span> Copy
+                        </button>
+</div>
+</section>
+<!-- Quick Start Snippet -->
+<section class="bg-surface-container-lowest border border-outline-variant/40 rounded-xl overflow-hidden shadow-sm">
+<div class="bg-surface-container-low border-b border-outline-variant/40 px-lg py-sm flex justify-between items-center">
+<h3 class="font-body-sm text-body-sm font-medium text-on-surface">Quick Start (JS Fetch)</h3>
+<button class="text-on-surface-variant hover:text-primary font-body-sm text-body-sm flex items-center gap-xs">
+<span class="material-symbols-outlined text-sm">code</span> View SDKs
+                            </button>
+</div>
+<div class="p-lg bg-[#FAF9F6] overflow-x-auto relative group">
+<pre class="font-code-md text-code-md text-on-surface leading-relaxed whitespace-pre"><span class="text-secondary">const</span> response = <span class="text-primary">await</span> fetch(<span class="text-primary-container">'https://route429.dev/p/main-production/v1beta/models/gemini-pro:generateContent'</span>, {
+  method: <span class="text-primary-container">'POST'</span>,
+  headers: {
+    <span class="text-primary-container">'Content-Type'</span>: <span class="text-primary-container">'application/json'</span>,
+    <span class="text-primary-container">'Authorization'</span>: <span class="text-primary-container">'Bearer YOUR_ROUTE429_CLIENT_TOKEN'</span>
+  },
+  body: JSON.stringify({
+    contents: [{ parts: [{ text: <span class="text-primary-container">"Hello!"</span> }] }]
+  })
+});</pre>
+<button class="absolute top-md right-md opacity-0 group-hover:opacity-100 bg-surface-container-lowest border border-outline-variant/40 text-on-surface-variant hover:text-primary p-xs rounded shadow-sm transition-all" title="Copy snippet">
+<span class="material-symbols-outlined text-sm">content_copy</span>
+</button>
+</div>
+</section>
+<!-- Configuration Settings -->
+<section class="bg-surface-container-lowest border border-outline-variant/40 rounded-xl p-lg shadow-sm">
+<h3 class="font-body-lg text-body-lg font-medium text-on-surface mb-md flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary">settings</span>
+                            Configuration
+                        </h3>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-md">
+<div class="bg-surface-container-low border border-outline-variant/30 rounded-lg p-md">
+<p class="font-label-caps text-label-caps text-on-surface-variant mb-xs">Target Base URL</p>
+<p class="font-code-md text-code-md text-on-surface truncate" title="https://generativelanguage.googleapis.com">https://generativelanguage.googleapis.com</p>
+</div>
+<div class="bg-surface-container-low border border-outline-variant/30 rounded-lg p-md">
+<p class="font-label-caps text-label-caps text-on-surface-variant mb-xs">API Key Header</p>
+<p class="font-code-md text-code-md text-on-surface">x-goog-api-key</p>
+</div>
+<div class="bg-surface-container-low border border-outline-variant/30 rounded-lg p-md">
+<p class="font-label-caps text-label-caps text-on-surface-variant mb-xs">Allowed Origins</p>
+<p class="font-code-md text-code-md text-on-surface">*</p>
+</div>
+</div>
+</section>
+<!-- API Keys Management -->
+<section>
+<div class="flex justify-between items-end mb-md">
+<div>
+<h3 class="font-body-lg text-body-lg font-medium text-on-surface flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary">key</span>
+                                    Provider Keys (Google Gemini)
+                                </h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-xs">Keys are pooled and rotated automatically based on your strategy.</p>
+</div>
+<button class="bg-primary-container text-on-primary font-body-sm text-body-sm px-md py-sm rounded-lg hover:opacity-90 transition-opacity shadow-sm flex items-center gap-xs">
+<span class="material-symbols-outlined text-sm">add</span> Add Keys
+                            </button>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant/40 rounded-xl overflow-hidden shadow-sm">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low border-b border-outline-variant/40">
+<th class="py-sm px-md font-label-caps text-label-caps text-on-surface-variant font-medium">Key Prefix</th>
+<th class="py-sm px-md font-label-caps text-label-caps text-on-surface-variant font-medium">Added</th>
+<th class="py-sm px-md font-label-caps text-label-caps text-on-surface-variant font-medium">Status</th>
+<th class="py-sm px-md font-label-caps text-label-caps text-on-surface-variant font-medium text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/20">
+<tr class="hover:bg-surface-container-low/50 transition-colors">
+<td class="py-md px-md font-code-md text-code-md text-on-surface">AIzaSy••••••••••a1b2</td>
+<td class="py-md px-md font-body-sm text-body-sm text-on-surface-variant">2 days ago</td>
+<td class="py-md px-md"><span class="bg-primary-container/10 text-primary-container px-2 py-1 rounded text-xs font-medium">Active</span></td>
+<td class="py-md px-md text-right">
+<button class="text-on-surface-variant hover:text-error transition-colors p-xs rounded hover:bg-error-container/20" title="Revoke Key">
+<span class="material-symbols-outlined text-sm">delete</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 transition-colors">
+<td class="py-md px-md font-code-md text-code-md text-on-surface">AIzaSy••••••••••x9y8</td>
+<td class="py-md px-md font-body-sm text-body-sm text-on-surface-variant">1 week ago</td>
+<td class="py-md px-md"><span class="bg-primary-container/10 text-primary-container px-2 py-1 rounded text-xs font-medium">Active</span></td>
+<td class="py-md px-md text-right">
+<button class="text-on-surface-variant hover:text-error transition-colors p-xs rounded hover:bg-error-container/20">
+<span class="material-symbols-outlined text-sm">delete</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 transition-colors">
+<td class="py-md px-md font-code-md text-code-md text-on-surface">AIzaSy••••••••••c3d4</td>
+<td class="py-md px-md font-body-sm text-body-sm text-on-surface-variant">2 weeks ago</td>
+<td class="py-md px-md"><span class="bg-primary-container/10 text-primary-container px-2 py-1 rounded text-xs font-medium">Active</span></td>
+<td class="py-md px-md text-right">
+<button class="text-on-surface-variant hover:text-error transition-colors p-xs rounded hover:bg-error-container/20">
+<span class="material-symbols-outlined text-sm">delete</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</div>
+</div>
+</main>
+</div>
+<!-- Create Project Modal (Hidden) -->
+<div class="fixed inset-0 bg-on-background/20 backdrop-blur-sm z-50 flex items-center justify-center p-md hide opacity-0 transition-opacity duration-300" id="new-project-modal">
+<div class="bg-surface-container-lowest rounded-xl shadow-lg w-full max-w-lg border border-outline-variant/40 overflow-hidden transform scale-95 transition-transform duration-300" id="modal-content">
+<div class="px-lg py-md border-b border-outline-variant/40 flex justify-between items-center bg-surface-container-low">
+<h2 class="font-headline-md text-headline-md font-medium text-on-surface">Create Proxy Project</h2>
+<button class="text-on-surface-variant hover:text-on-surface p-xs rounded-full hover:bg-outline-variant/20 transition-colors" onclick="toggleModal('new-project-modal')">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="p-lg space-y-lg">
+<div>
+<label class="block font-body-sm text-body-sm font-medium text-on-surface mb-xs">Project Name</label>
+<input class="w-full bg-surface border border-outline-variant/40 rounded-lg px-md py-sm font-body-md text-body-md focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all" placeholder="e.g., Marketing AI Service" type="text"/>
+</div>
+<div>
+<label class="block font-body-sm text-body-sm font-medium text-on-surface mb-sm">AI Provider</label>
+<div class="grid grid-cols-2 gap-sm">
+<label class="border-2 border-primary bg-primary/5 rounded-lg p-md cursor-pointer flex items-center gap-sm transition-all">
+<input checked="" class="text-primary focus:ring-primary h-4 w-4" name="provider" type="radio"/>
+<span class="font-body-md text-body-md font-medium text-on-surface">Gemini</span>
+</label>
+<label class="border border-outline-variant/40 hover:border-primary/50 bg-surface rounded-lg p-md cursor-pointer flex items-center gap-sm transition-all opacity-70">
+<input class="text-primary focus:ring-primary h-4 w-4" name="provider" type="radio"/>
+<span class="font-body-md text-body-md font-medium text-on-surface">OpenAI</span>
+</label>
+<label class="border border-outline-variant/40 hover:border-primary/50 bg-surface rounded-lg p-md cursor-pointer flex items-center gap-sm transition-all opacity-70">
+<input class="text-primary focus:ring-primary h-4 w-4" name="provider" type="radio"/>
+<span class="font-body-md text-body-md font-medium text-on-surface">Anthropic</span>
+</label>
+<label class="border border-outline-variant/40 hover:border-primary/50 bg-surface rounded-lg p-md cursor-pointer flex items-center gap-sm transition-all opacity-70">
+<input class="text-primary focus:ring-primary h-4 w-4" name="provider" type="radio"/>
+<span class="font-body-md text-body-md font-medium text-on-surface">Custom</span>
+</label>
+</div>
+</div>
+<div>
+<label class="block font-body-sm text-body-sm font-medium text-on-surface mb-xs">Paste your API keys (One per line)</label>
+<textarea class="w-full bg-surface border border-outline-variant/40 rounded-lg px-md py-sm font-code-md text-code-md focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all resize-none" placeholder="AIzaSy..." rows="4"></textarea>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-xs">Keys are encrypted at rest using AES-256.</p>
+</div>
+</div>
+<div class="px-lg py-md border-t border-outline-variant/40 bg-surface-container-low flex justify-end gap-sm">
+<button class="px-md py-sm rounded-lg font-body-md text-body-md border border-outline-variant/40 bg-surface hover:bg-surface-container text-on-surface transition-colors shadow-sm" onclick="toggleModal('new-project-modal')">Cancel</button>
+<button class="px-md py-sm rounded-lg font-body-md text-body-md bg-primary-container text-on-primary hover:opacity-90 transition-opacity shadow-sm" onclick="toggleModal('new-project-modal')">Create Project</button>
+</div>
+</div>
+</div>
+<script>
+        // Simple View Routing
+        function showDashboard() {
+            const authView = document.getElementById('auth-view');
+            const dashboardView = document.getElementById('dashboard-view');
+            
+            authView.style.opacity = '0';
+            setTimeout(() => {
+                authView.classList.add('hide');
+                dashboardView.classList.remove('hide');
+            }, 300);
+        }
+
+        function showAuth() {
+            const authView = document.getElementById('auth-view');
+            const dashboardView = document.getElementById('dashboard-view');
+            
+            dashboardView.classList.add('hide');
+            authView.classList.remove('hide');
+            // Small delay to allow display:flex to apply before opacity transition
+            setTimeout(() => {
+                authView.style.opacity = '1';
+            }, 10);
+        }
+
+        // Modal Logic
+        function toggleModal(modalId) {
+            const modal = document.getElementById(modalId);
+            const content = modal.querySelector('#modal-content');
+            
+            if (modal.classList.contains('hide')) {
+                modal.classList.remove('hide');
+                // Trigger reflow
+                void modal.offsetWidth;
+                modal.classList.remove('opacity-0');
+                content.classList.remove('scale-95');
+                content.classList.add('scale-100');
+            } else {
+                modal.classList.add('opacity-0');
+                content.classList.remove('scale-100');
+                content.classList.add('scale-95');
+                setTimeout(() => {
+                    modal.classList.add('hide');
+                }, 300); // match transition duration
+            }
+        }
+
+        // Copy to clipboard helper
+        function copyText(elementId) {
+            const el = document.getElementById(elementId);
+            const text = el.innerText || el.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                // visual feedback could go here
+                const btn = el.nextElementSibling;
+                const icon = btn.querySelector('span');
+                const origText = btn.innerHTML;
+                btn.innerHTML = '<span class="material-symbols-outlined text-sm mr-xs">check</span> Copied';
+                btn.classList.add('bg-primary');
+                setTimeout(() => {
+                    btn.innerHTML = origText;
+                    btn.classList.remove('bg-primary');
+                }, 2000);
+            });
+        }
+    </script>
+</body></html>

@@ -1,28 +1,14 @@
 name = "route429"
 main = "src/index.ts"
-compatibility_date = "2024-12-01"
+compatibility_date = "2024-03-20"
 
-# --------------------------------------------------------------------------
-# Environment Variables (non-secret defaults)
-# --------------------------------------------------------------------------
-# These are safe to commit. Override per-environment or use `wrangler secret put`
-# for sensitive values like API_KEYS.
+# Note: Replace this ID with your production KV namespace ID before deploying.
+# Run: npx wrangler kv:namespace create ROUTE429_KV
+[[kv_namespaces]]
+binding = "ROUTE429_KV"
+id = "2d0c2438cb464010acc36611293a525d"
 
-[vars]
-# TARGET_BASE_URL = "https://api.example.com"   # Set to your upstream API base URL
-# API_KEY_HEADER  = "Authorization"               # Header used to attach the key
-# API_KEY_PREFIX  = "Bearer "                      # Prefix prepended to the key value
-# ALLOWED_ORIGINS = "*"                            # Comma-separated allowed CORS origins
-
-# --------------------------------------------------------------------------
-# Secrets (set via `wrangler secret put <NAME>`)
-# --------------------------------------------------------------------------
-# API_KEYS — JSON-encoded array of API keys:
-#   wrangler secret put API_KEYS
-#   > ["sk-key1", "sk-key2", "sk-key3"]
-
-# --------------------------------------------------------------------------
-# Production overrides (optional)
-# --------------------------------------------------------------------------
-# [env.production]
-# vars = { ALLOWED_ORIGINS = "https://myapp.com,https://www.myapp.com" }
+[[rules]]
+type = "Text"
+globs = ["**/*.html"]
+fallthrough = true

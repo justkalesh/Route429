@@ -1,116 +1,84 @@
-# Route429 — Design Document
+# Design: Route429
 
 ## Overview
 
-Route429 is a stateless, edge-deployed proxy that transparently rotates API keys on rate-limit errors. This document captures the technical design decisions and their rationale.
+Route429 is a stateless (edge-deployed) proxy and multi-tenant SaaS platform that transparently rotates API keys on rate-limit errors. This document captures the technical design decisions and their rationale.
 
 ## Design Decisions
 
 ### 1. Round-Robin Key Selection
 
-**Decision**: Use an isolate-scoped counter (`roundRobinIndex`) to cycle through keys.
+**Decision**: Use an isolate-scoped counter (`roundRobinCounters` map keyed by project) to cycle through keys.
 
 **Rationale**: 
 - Simple, zero-overhead, no external state needed.
-- Each V8 isolate maintains its own counter, so parallel isolates naturally spread across different keys.
+- Each V8 isolate maintains its own counters, so parallel isolates naturally spread across different keys.
 - After a successful request, the counter advances so the *next* request starts from a different key.
 
 **Trade-off**: Under high concurrency across multiple isolates, two isolates may pick the same key. This is acceptable because:
-- The retry loop will still rotate through all keys.
-- True distributed coordination (e.g., via KV or Durable Objects) would add latency and cost, defeating the "free tier" goal.
+1. Rate limits apply across the *entire* key, so spreading requests probabilistically is sufficient.
+2. If two isolates pick the same key and hit a 429, they will *both* rotate to their respective next keys.
 
-### 2. Retry Loop Bounded by Pool Size
+### 2. Zero-Buffer Proxying
 
-**Decision**: Max retries = `keys.length`. Each retry uses the *next* key in sequence.
+**Decision**: The request body is read once as a stream and forwarded. We do *not* buffer the request body in memory.
 
-**Rationale**:
-- Guarantees every key gets exactly one attempt before giving up.
-- Prevents infinite retry storms.
-- If all keys are rate-limited, the client gets a clear 503 instead of hanging.
+**Rationale**: 
+- Critical for minimizing memory usage in Workers.
+- Allows streaming large payloads without hitting Worker memory limits.
 
-### 3. Request Body Streaming
+**Trade-off**: If a `POST` request fails with a 429, the body stream is already consumed. The proxy *cannot* automatically retry non-`GET`/`HEAD` requests on the next key because the body is gone. 
+- **Current Behavior**: The worker returns the 429 to the client, but advances the key counter so the *client's* next retry uses a fresh key. 
+- **Future fix**: For small payloads (< 1MB), we could conditionally buffer `request.clone().text()`.
 
-**Decision**: Pass `request.body` (a `ReadableStream`) directly to the upstream `fetch()`.
+### 3. Single-Worker Architecture (Monolith)
 
-**Rationale**:
-- Avoids buffering the entire body in memory (critical for large payloads).
-- Cloudflare Workers have a 128 MB memory limit; streaming stays well within it.
+**Decision**: The entire application (UI, Auth API, Project Management, and Proxy Engine) is served from a single Cloudflare Worker.
 
-**Caveat**: If the first key gets a 429, the body stream is consumed and cannot be replayed for the next key. However, for requests with bodies (POST/PUT/PATCH), the body is only consumed on the first `fetch()`. On 429, we consume the *response* body (to free the connection), but the request body is already sent. Subsequent retries will have `body: undefined` because the stream was consumed.
+**Rationale**: 
+- Simplifies deployment (one `wrangler.toml`).
+- Eliminates CORS issues between the frontend and the management API.
+- The UI is served purely as inline HTML strings, avoiding the need for a separate hosting platform.
 
-> **Important**: This means key rotation on 429 works perfectly for GET requests, but for POST/PUT/PATCH requests, the retry will send a request *without a body*. Most APIs will reject this with a 400, which the proxy will forward to the client. This is a known trade-off to avoid buffering.
+### 4. Authentication (PBKDF2)
 
-**Mitigation option**: If body replay is needed, buffer the request body into an `ArrayBuffer` before the loop. This is safe for most AI API payloads (typically < 1 MB). A future enhancement could add this with a configurable size limit.
+**Decision**: Use `PBKDF2-SHA256` via the native Web Crypto API for password hashing.
 
-### 4. CORS Strategy
-
-**Decision**: Full preflight + response header injection with configurable origins.
-
-**Details**:
-- `OPTIONS` returns 204 with `Access-Control-Allow-*` headers.
-- All proxied responses get CORS headers injected.
-- `Vary: Origin` is set when not using wildcard `*` (required for correct caching).
-- `Access-Control-Max-Age: 86400` reduces preflight frequency.
-
-### 5. Hop-by-Hop Header Stripping
-
-**Decision**: Strip [RFC 2616 §13.5.1](https://www.rfc-editor.org/rfc/rfc2616#section-13.5.1) hop-by-hop headers from forwarded requests.
-
-**Rationale**: These headers are connection-specific and must not be forwarded by proxies. Leaving them in can cause subtle breakage with certain upstream servers.
-
-### 6. Error Response Format
-
-**Decision**: All errors return structured JSON with `error` code and `message`.
-
-```json
-{
-  "error": "all_keys_exhausted",
-  "message": "All API keys in the pool have been rate-limited.",
-  "retryAfter": "30"
-}
-```
-
-**Rationale**: Clients can programmatically handle errors by switching on `error` code, and the `retryAfter` field (when present) enables smart client-side backoff.
-
-### 7. Key Masking in Logs
-
-**Decision**: Log only `first5...last3` characters of keys (e.g., `sk-pr...xyz`).
-
-**Rationale**: Enables debugging which key was used without exposing the full secret in Cloudflare's log stream.
+**Rationale**: 
+- Cloudflare Workers do not support standard Node.js native modules like `bcrypt`. 
+- Using standard Web Crypto keeps the project dependency-free (no npm packages required).
 
 ## Security Considerations
 
 | Concern | Mitigation |
 |---|---|
-| Key exposure in code | Keys are Cloudflare Secrets (`wrangler secret put`), never in `wrangler.toml` |
-| Key exposure in logs | Masked to `first5...last3` |
-| Key exposure in responses | Keys are only added to upstream requests, never reflected to clients |
-| CORS abuse | Configurable `ALLOWED_ORIGINS`; production should restrict to specific domains |
-| Upstream URL injection | `TARGET_BASE_URL` is server-side config; client only controls the path |
+| Key exposure in DB | API Keys are stored in Cloudflare KV, which is encrypted at rest. Passwords are hashed via PBKDF2. |
+| Key exposure in logs | Masked to `first5...last3` when displayed in the dashboard. |
+| Key exposure in responses | Keys are only added to upstream requests, never reflected to clients. |
+| CORS abuse | Configurable `ALLOWED_ORIGINS` per project. |
+| Upstream URL injection | `TARGET_BASE_URL` is configured per project in the dashboard; the client only controls the trailing path. |
 
 ## Flow Diagram
 
 ```mermaid
 flowchart TD
-    A[Client Request] --> B{OPTIONS?}
-    B -- Yes --> C[Return 204 + CORS]
-    B -- No --> D[Parse API_KEYS]
-    D -- Invalid --> E[500 Config Error]
-    D -- Valid --> F[Build Upstream URL]
-    F --> G[Pick Key via Round-Robin]
-    G --> H[Attach Key Header]
-    H --> I[fetch upstream]
-    I -- Network Error --> J[502 Bad Gateway]
-    I -- 429 --> K{More Keys?}
-    K -- Yes --> G
-    K -- No --> L[503 All Exhausted]
-    I -- Success --> M[Forward Response + CORS]
+    A[Client Request] --> B{Path?}
+    B -- /dashboard --> C[Serve UI]
+    B -- /api/auth --> D[Handle Login/Signup]
+    B -- /api/projects --> E[Handle CRUD]
+    B -- /p/:project/* --> F[Proxy Engine]
+    
+    F --> G{OPTIONS?}
+    G -- Yes --> H[Return 204 + CORS]
+    G -- No --> I[Load Project from KV]
+    I -- Invalid --> J[404 Project Not Found]
+    I -- Valid --> K[Build Upstream URL]
+    K --> L[Pick Key via Round-Robin]
+    L --> M[Attach Key Header]
+    M --> N[fetch upstream]
+    N -- Network Error --> O[502 Bad Gateway]
+    N -- 429 --> P{More Keys?}
+    P -- Yes --> L
+    P -- No --> Q[503 All Exhausted]
+    N -- Success --> R[Forward Response + CORS]
 ```
-
-## Future Enhancements
-
-- **Request body buffering** for POST/PUT retry support (with size limit)
-- **KV-backed key state** to track per-key rate-limit windows across isolates
-- **Durable Object coordinator** for true distributed round-robin
-- **Analytics** via Workers Analytics Engine
-- **Multiple target APIs** via path-based routing

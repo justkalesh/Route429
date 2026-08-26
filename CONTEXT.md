@@ -1,46 +1,44 @@
-# Route429 — Context
+# Context: Route429
 
-## Project Purpose
-Route429 is a **Cloudflare Worker** that acts as a transparent API key rotation proxy. It sits between your frontend applications and a target API (e.g., OpenAI, Gemini, Anthropic). When the upstream API returns a **429 Too Many Requests**, the proxy automatically swaps the exhausted key for a fresh one from a pre-configured pool and retries — all invisible to the client.
+## Goal
+To provide a seamless, zero-dependency API key rotation proxy deployed on Cloudflare Workers, complete with a beautiful SaaS dashboard for managing multiple projects and API key pools.
 
 ## Architecture
 
 ```
-┌──────────┐        ┌──────────────┐        ┌──────────────┐
-│  Client   │──req──▶│   Route429   │──req──▶│  Target API  │
-│  (Browser)│◀──res──│  (CF Worker) │◀──res──│  (upstream)  │
-└──────────┘        └──────────────┘        └──────────────┘
-                          │
-                    ┌─────┴─────┐
-                    │  Key Pool │
-                    │ [k1,k2,k3]│
-                    └───────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                     Route429 Worker                          │
+│                                                              │
+│  ┌─────────────┐   ┌──────────────┐   ┌──────────────────┐  │
+│  │  Dashboard   │   │   Auth API   │   │   Proxy Engine   │  │
+│  │  (Static UI) │   │  /api/auth/* │   │ /p/<project>/*   │  │
+│  │  /dashboard  │   │  /api/proj/* │   │                  │  │
+│  └─────────────┘   └──────┬───────┘   └────────┬─────────┘  │
+│                           │                     │            │
+│                    ┌──────▼─────────────────────▼──────┐     │
+│                    │        Cloudflare KV              │     │
+│                    │  users:<email> → user record       │     │
+│                    │  sessions:<token> → user email     │     │
+│                    │  projects:<name> → project config  │     │
+│                    └──────────────────────────────────┘     │
+└──────────────────────────────────────────────────────────────┘
 ```
 
 ### Request Flow
-1. Client sends request to the Worker URL.
-2. Worker reads `API_KEYS` env var → parses key pool.
-3. Picks next key via round-robin, attaches it to the configured header.
-4. Forwards request to `TARGET_BASE_URL`.
-5. If upstream returns **429**: rotates to next key, retries.
-6. If all keys exhausted: returns **503** to client.
-7. Otherwise: forwards upstream response with CORS headers.
-
-## Environment Variables
-
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `API_KEYS` | ✅ Yes (secret) | — | JSON array of API keys: `["sk-a","sk-b"]` |
-| `TARGET_BASE_URL` | ✅ Yes | — | Upstream API base URL |
-| `API_KEY_HEADER` | No | `Authorization` | Header name for the key |
-| `API_KEY_PREFIX` | No | `Bearer ` | Prefix prepended to key value |
-| `ALLOWED_ORIGINS` | No | `*` | Comma-separated CORS origins |
+1. **Management**: Clients manage users and projects through the dashboard UI. The UI calls `/api/*` endpoints which read/write to Cloudflare KV.
+2. **Proxying**: The client application sends a request to the proxy path `/p/<project-name>/<upstream-path>`.
+3. The Worker reads the `<project-name>` configuration from KV.
+4. The proxy engine picks the next key via round-robin, attaches it to the configured header, and forwards the request to the project's target API.
+5. If the upstream returns **429 Rate Limited**, the engine automatically rotates to the next key and retries.
+6. If all keys are exhausted, it returns a **503 Service Unavailable** to the client.
+7. Otherwise, it forwards the successful upstream response with proper CORS headers.
 
 ## Tech Stack
-- **Runtime**: Cloudflare Workers (V8 isolates)
-- **Language**: TypeScript (ES module syntax)
-- **Tooling**: Wrangler CLI
-- **Dependencies**: Zero runtime dependencies (native `fetch` API only)
+- **Compute**: Cloudflare Workers
+- **Language**: TypeScript
+- **Storage**: Cloudflare KV
+- **Frontend**: HTML / CSS (Tailwind) / Vanilla JS (No external framework dependencies)
+- **Security**: Web Crypto API (PBKDF2)
 
 ## Current Phase
-Initial implementation — core proxy with key rotation logic.
+**Deployment Ready**. The multi-tenant architecture is complete. The proxy logic reads per-project configuration from Cloudflare KV, and users can manage their keys via the dashboard UI. The system is ready to be deployed to production.

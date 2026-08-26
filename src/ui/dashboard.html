@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>Route429 - Developer Dashboard</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Geist:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "tertiary-fixed-dim": "#c7c6c4", "inverse-on-surface": "#ebf1ff", "surface-container-highest": "#d9e3f9", "error-container": "#ffdad6",
+            "on-primary-fixed": "#022016", "outline-variant": "#c1c8c3", "surface-bright": "#f9f9ff", "on-secondary-container": "#6c6244",
+            "surface-container-high": "#dee8ff", "tertiary-container": "#434442", "on-primary-container": "#99b9a9", "on-secondary-fixed": "#221b04",
+            "surface-container": "#e7eeff", "surface-variant": "#d9e3f9", "inverse-surface": "#273141", "secondary-fixed": "#f0e1bc",
+            "on-background": "#121c2c", "on-error": "#ffffff", "tertiary-fixed": "#e3e2e0", "background": "#f9f9ff",
+            "on-tertiary-fixed": "#1a1c1a", "on-surface-variant": "#424844", "surface-container-low": "#f0f3ff", "secondary-fixed-dim": "#d3c6a2",
+            "tertiary": "#2d2e2c", "on-primary-fixed-variant": "#304d40", "primary-fixed-dim": "#adcebe", "on-tertiary-container": "#b1b1ae",
+            "on-surface": "#121c2c", "surface-container-lowest": "#ffffff", "secondary": "#685e40", "secondary-container": "#eddfb9",
+            "primary-container": "#2d4a3e", "on-error-container": "#93000a", "on-secondary-fixed-variant": "#4f462b", "primary-fixed": "#c9ead9",
+            "outline": "#727974", "on-primary": "#ffffff", "on-tertiary-fixed-variant": "#464745", "surface-tint": "#476558",
+            "surface-dim": "#d0daf0", "inverse-primary": "#adcebe", "primary": "#163328", "surface": "#f9f9ff",
+            "on-tertiary": "#ffffff", "on-secondary": "#ffffff", "error": "#ba1a1a"
+          },
+          borderRadius: { "DEFAULT": "0.25rem", "lg": "0.75rem", "xl": "1rem", "full": "9999px" },
+          fontFamily: {
+            "body-md": ["Inter", "sans-serif"], "body-sm": ["Inter", "sans-serif"], "display": ["Geist", "sans-serif"],
+            "body-lg": ["Inter", "sans-serif"], "headline-lg-mobile": ["Geist", "sans-serif"], "headline-lg": ["Geist", "sans-serif"],
+            "label-caps": ["Inter", "sans-serif"], "code-md": ["JetBrains Mono", "monospace"], "headline-md": ["Geist", "sans-serif"]
+          },
+          fontSize: {
+            "body-md": ["16px", { lineHeight: "1.5", fontWeight: "400" }],
+            "body-sm": ["14px", { lineHeight: "1.5", fontWeight: "400" }],
+            "display": ["48px", { lineHeight: "1.1", letterSpacing: "-0.02em", fontWeight: "600" }],
+            "body-lg": ["18px", { lineHeight: "1.6", fontWeight: "400" }],
+            "headline-lg-mobile": ["24px", { lineHeight: "1.2", fontWeight: "600" }],
+            "headline-lg": ["32px", { lineHeight: "1.2", letterSpacing: "-0.01em", fontWeight: "600" }],
+            "label-caps": ["12px", { lineHeight: "1", letterSpacing: "0.05em", fontWeight: "600" }],
+            "code-md": ["14px", { lineHeight: "1.5", fontWeight: "400" }],
+            "headline-md": ["24px", { lineHeight: "1.3", fontWeight: "500" }]
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #f9f9ff; color: #121c2c; }
+    .hide { display: none !important; }
+    .glass-card {
+      background: rgba(253, 245, 230, 0.7);
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(213, 199, 163, 0.4);
+    }
+    .spinner { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.2); border-top-color: white; border-radius: 50%; animation: spin 0.6s linear infinite; display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-btn { pointer-events: none; opacity: 0.7; }
+    
+    /* Toast styles */
+    .toast-container { position: fixed; top: 20px; right: 20px; z-index: 200; display: flex; flex-direction: column; gap: 8px; }
+    .toast {
+      padding: 12px 18px; border-radius: 8px; font-size: 0.85rem; font-weight: 500;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1); animation: toast-in 0.3s ease-out; min-width: 250px;
+    }
+    .toast-success { background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); color: #047857; }
+    .toast-error { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #b91c1c; }
+    @keyframes toast-in { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+  </style>
+</head>
+<body class="font-body-md text-on-surface antialiased h-screen overflow-hidden flex bg-background selection:bg-primary-container selection:text-on-primary-container">
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Auth View -->
+  <div class="w-full h-full flex items-center justify-center p-4 md:p-8 bg-surface-container-low absolute z-50 transition-opacity duration-300" id="auth-view">
+    <div class="glass-card w-full max-w-md rounded-xl p-6 md:p-10 shadow-sm relative overflow-hidden">
+      <div class="absolute inset-0 opacity-5 pointer-events-none" style="background-image: url('data:image/svg+xml,%3Csvg width=\'20\' height=\'20\' viewBox=\'0 0 20 20\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'%232d4a3e\' fill-opacity=\'1\' fill-rule=\'evenodd\'%3E%3Ccircle cx=\'3\' cy=\'3\' r=\'3\'/%3E%3Ccircle cx=\'13\' cy=\'13\' r=\'3\'/%3E%3C/g%3E%3C/svg%3E');"></div>
+      <div class="text-center mb-8 relative z-10">
+        <h1 class="font-display text-4xl md:text-5xl text-primary mb-2 tracking-tight">Route429</h1>
+        <p class="font-body-lg text-lg text-on-surface-variant">Secure AI API Proxy</p>
+      </div>
+      <div class="flex border-b border-outline-variant/40 mb-8 relative z-10">
+        <button id="tab-login" class="flex-1 pb-2 font-label-caps text-xs tracking-wider text-primary border-b-2 border-primary transition-colors" onclick="switchAuthTab('login')">LOGIN</button>
+        <button id="tab-signup" class="flex-1 pb-2 font-label-caps text-xs tracking-wider text-on-surface-variant hover:text-primary transition-colors" onclick="switchAuthTab('signup')">SIGNUP</button>
+      </div>
+      
+      <div id="authAlert" class="mb-4 p-3 bg-error-container text-on-error-container rounded-lg text-sm border border-error/20 hide"></div>
+      
+      <form class="space-y-4 relative z-10" id="authForm" onsubmit="handleAuthSubmit(event)">
+        <div>
+          <label class="block font-body-sm text-sm text-on-surface-variant mb-1">Email</label>
+          <input id="authEmail" class="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-lg px-4 py-2 font-body-md focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all" required type="email" placeholder="developer@route429.dev"/>
+        </div>
+        <div>
+          <label class="block font-body-sm text-sm text-on-surface-variant mb-1">Password</label>
+          <input id="authPassword" class="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-lg px-4 py-2 font-body-md focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all" required type="password" placeholder="********"/>
+        </div>
+        <button id="authSubmitBtn" class="w-full bg-primary-container text-on-primary rounded-lg py-3 font-body-md hover:opacity-90 transition-opacity mt-6 shadow-sm flex justify-center items-center h-[48px]" type="submit">
+          <span id="authSubmitText">Log In</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Dashboard App Shell -->
+  <div class="w-full h-full flex hide relative" id="dashboard-view">
+    <!-- SideNav -->
+    <nav class="fixed md:static left-0 top-0 h-screen flex flex-col p-6 w-64 bg-surface-container-lowest border-r border-outline-variant/40 shadow-sm z-20 shrink-0 transform -translate-x-full md:translate-x-0 transition-transform duration-300" id="sidebar">
+      <div class="mb-12">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="material-symbols-outlined text-primary text-3xl">route</span>
+          <h2 class="text-2xl font-headline-md font-extrabold text-primary">Route429</h2>
+        </div>
+        <p class="font-body-sm text-sm text-on-surface-variant">Developer Dashboard</p>
+      </div>
+      
+      <div class="flex-1 overflow-y-auto">
+        <p class="font-label-caps text-xs tracking-wider text-on-surface-variant mb-4 px-4">PROJECTS</p>
+        <ul class="space-y-1 mb-8" id="projectList">
+          <!-- Populated by JS -->
+        </ul>
+        <button class="w-full bg-surface-container-lowest border border-secondary-container text-on-surface-variant rounded-lg py-2 px-4 flex items-center justify-center gap-2 hover:border-primary hover:text-primary transition-colors font-body-sm text-sm shadow-sm" onclick="openCreateModal()">
+          <span class="material-symbols-outlined text-sm">add</span>
+          New Project
+        </button>
+      </div>
+      
+      <div class="mt-auto pt-6 border-t border-outline-variant/20">
+        <button class="w-full flex items-center gap-4 text-on-surface-variant hover:text-error hover:bg-error-container/20 rounded-lg py-2 px-4 transition-colors duration-200" onclick="logout()">
+          <span class="material-symbols-outlined">logout</span>
+          <span class="font-body-md text-base">Logout</span>
+        </button>
+        <div class="mt-4 px-4 flex items-center gap-3 overflow-hidden">
+          <div id="userAvatar" class="w-8 h-8 shrink-0 rounded-full bg-primary-container text-on-primary flex items-center justify-center font-label-caps text-xs">?</div>
+          <span id="userEmail" class="font-body-sm text-sm text-on-surface-variant truncate"></span>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Canvas -->
+    <main class="flex-1 flex flex-col h-full bg-background overflow-hidden relative">
+      <!-- Mobile header -->
+      <header class="md:hidden flex justify-between items-center h-16 px-4 bg-surface border-b border-outline-variant/40 shrink-0">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary">route</span>
+          <span class="font-headline-md font-bold text-primary">Route429</span>
+        </div>
+        <button class="text-on-surface-variant" onclick="document.getElementById('sidebar').classList.toggle('-translate-x-full')">
+          <span class="material-symbols-outlined">menu</span>
+        </button>
+      </header>
+
+      <div id="mainContent" class="flex-1 flex flex-col overflow-hidden">
+        <!-- Populated by JS -->
+      </div>
+    </main>
+  </div>
+
+  <!-- Create Project Modal -->
+  <div class="fixed inset-0 bg-on-background/20 backdrop-blur-sm z-50 flex items-center justify-center p-4 hide opacity-0 transition-opacity duration-300" id="new-project-modal">
+    <div class="bg-surface-container-lowest rounded-xl shadow-lg w-full max-w-lg border border-outline-variant/40 overflow-hidden transform scale-95 transition-transform duration-300 flex flex-col max-h-[90vh]" id="modal-content">
+      <div class="px-6 py-4 border-b border-outline-variant/40 flex justify-between items-center bg-surface-container-low shrink-0">
+        <h2 id="modalTitle" class="font-headline-md text-xl font-medium text-on-surface">Create Proxy Project</h2>
+        <button type="button" class="text-on-surface-variant hover:text-on-surface p-1 rounded-full hover:bg-outline-variant/20 transition-colors" onclick="closeCreateModal()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      
+      <div id="modalAlert" class="m-6 mb-0 p-3 bg-error-container text-on-error-container rounded-lg text-sm border border-error/20 hide shrink-0"></div>
+
+      <form id="projectForm" class="flex flex-col overflow-hidden" onsubmit="handleProjectSubmit(event)">
+        <div class="p-6 space-y-6 overflow-y-auto">
+          <div id="nameGroup">
+            <label class="block font-body-sm text-sm font-medium text-on-surface mb-1">Project Name</label>
+            <input id="projectName" class="w-full bg-surface border border-outline-variant/40 rounded-lg px-4 py-2 font-body-md focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all" placeholder="e.g., marketing-ai-service" required pattern="[a-z0-9][a-z0-9\-]{1,38}[a-z0-9]" type="text"/>
+            <p class="text-xs text-on-surface-variant mt-1">Lowercase, alphanumeric, hyphens.</p>
+          </div>
+          
+          <div>
+            <label class="block font-body-sm text-sm font-medium text-on-surface mb-2">AI Provider</label>
+            <div class="grid grid-cols-2 gap-2" id="providerGrid">
+              <label class="provider-radio border-2 border-primary bg-primary/5 rounded-lg p-3 cursor-pointer flex items-center gap-2 transition-all">
+                <input class="text-primary focus:ring-primary h-4 w-4" name="provider" type="radio" value="gemini" checked onclick="selectProvider('gemini')"/>
+                <span class="font-body-md font-medium text-on-surface">Gemini</span>
+              </label>
+              <label class="provider-radio border border-outline-variant/40 hover:border-primary/50 bg-surface rounded-lg p-3 cursor-pointer flex items-center gap-2 transition-all opacity-70">
+                <input class="text-primary focus:ring-primary h-4 w-4" name="provider" type="radio" value="openai" onclick="selectProvider('openai')"/>
+                <span class="font-body-md font-medium text-on-surface">OpenAI</span>
+              </label>
+              <label class="provider-radio border border-outline-variant/40 hover:border-primary/50 bg-surface rounded-lg p-3 cursor-pointer flex items-center gap-2 transition-all opacity-70">
+                <input class="text-primary focus:ring-primary h-4 w-4" name="provider" type="radio" value="anthropic" onclick="selectProvider('anthropic')"/>
+                <span class="font-body-md font-medium text-on-surface">Anthropic</span>
+              </label>
+              <label class="provider-radio border border-outline-variant/40 hover:border-primary/50 bg-surface rounded-lg p-3 cursor-pointer flex items-center gap-2 transition-all opacity-70">
+                <input class="text-primary focus:ring-primary h-4 w-4" name="provider" type="radio" value="custom" onclick="selectProvider('custom')"/>
+                <span class="font-body-md font-medium text-on-surface">Custom</span>
+              </label>
+            </div>
+          </div>
+
+          <div id="customFields" class="hide space-y-4 bg-surface-container-low p-4 rounded-lg border border-outline-variant/30">
+            <div>
+              <label class="block font-body-sm text-xs font-medium text-on-surface mb-1">Target Base URL</label>
+              <input id="targetBaseUrl" class="w-full bg-surface border border-outline-variant/40 rounded-lg px-3 py-2 font-code-md text-sm outline-none" type="url" placeholder="https://api.example.com"/>
+            </div>
+            <div>
+              <label class="block font-body-sm text-xs font-medium text-on-surface mb-1">API Key Header</label>
+              <input id="apiKeyHeader" class="w-full bg-surface border border-outline-variant/40 rounded-lg px-3 py-2 font-code-md text-sm outline-none" type="text" placeholder="Authorization"/>
+            </div>
+            <div>
+              <label class="block font-body-sm text-xs font-medium text-on-surface mb-1">API Key Prefix</label>
+              <input id="apiKeyPrefix" class="w-full bg-surface border border-outline-variant/40 rounded-lg px-3 py-2 font-code-md text-sm outline-none" type="text" placeholder="Bearer "/>
+            </div>
+          </div>
+          
+          <div>
+            <label class="block font-body-sm text-sm font-medium text-on-surface mb-1">Paste your API keys</label>
+            <textarea id="apiKeysInput" class="w-full bg-surface border border-outline-variant/40 rounded-lg px-4 py-2 font-code-md text-sm focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all resize-y min-h-[100px]" placeholder="Key 1&#10;Key 2..." required></textarea>
+            <p class="font-body-sm text-xs text-on-surface-variant mt-1">One per line. Keys are encrypted at rest.</p>
+          </div>
+
+          <div>
+            <label class="block font-body-sm text-sm font-medium text-on-surface mb-1">Allowed Origins (CORS)</label>
+            <input id="allowedOrigins" class="w-full bg-surface border border-outline-variant/40 rounded-lg px-4 py-2 font-body-md text-sm outline-none" type="text" value="*"/>
+          </div>
+        </div>
+        
+        <div class="px-6 py-4 border-t border-outline-variant/40 bg-surface-container-low flex justify-end gap-3 shrink-0">
+          <button type="button" class="px-4 py-2 rounded-lg font-body-md border border-outline-variant/40 bg-surface hover:bg-surface-container text-on-surface transition-colors shadow-sm" onclick="closeCreateModal()">Cancel</button>
+          <button id="projectSubmitBtn" type="submit" class="px-4 py-2 rounded-lg font-body-md bg-primary-container text-on-primary hover:opacity-90 transition-opacity shadow-sm flex items-center justify-center min-w-[120px]">
+            <span id="projectSubmitText">Create Project</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // ── State ──────────────────────────────────────────────────────────
+    const state = {
+      token: localStorage.getItem('route429_token'),
+      email: localStorage.getItem('route429_email'),
+      authTab: 'login',
+      projects: [],
+      selectedProject: null,
+    };
+
+    let editingProject = null;
+    let selectedProvider = 'gemini';
+
+    const PRESETS = {
+      gemini:    { targetBaseUrl: 'https://generativelanguage.googleapis.com', apiKeyHeader: 'x-goog-api-key', apiKeyPrefix: '' },
+      openai:    { targetBaseUrl: 'https://api.openai.com',                   apiKeyHeader: 'Authorization',   apiKeyPrefix: 'Bearer ' },
+      anthropic: { targetBaseUrl: 'https://api.anthropic.com',                apiKeyHeader: 'x-api-key',       apiKeyPrefix: '' },
+    };
+
+    // ── API Client ─────────────────────────────────────────────────────
+    async function api(method, path, body) {
+      const headers = { 'Content-Type': 'application/json' };
+      if (state.token) headers['Authorization'] = `Bearer ${state.token}`;
+      const res = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : undefined });
+      const data = await res.json();
+      if (!res.ok) throw { status: res.status, ...data };
+      return data;
+    }
+
+    // ── Toast ──────────────────────────────────────────────────────────
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      toast.textContent = message;
+      container.appendChild(toast);
+      setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
+    }
+
+    // ── Auth ───────────────────────────────────────────────────────────
+    function switchAuthTab(tab) {
+      state.authTab = tab;
+      document.getElementById('tab-login').className = tab === 'login' 
+        ? 'flex-1 pb-2 font-label-caps text-xs tracking-wider text-primary border-b-2 border-primary transition-colors' 
+        : 'flex-1 pb-2 font-label-caps text-xs tracking-wider text-on-surface-variant hover:text-primary transition-colors border-b-2 border-transparent';
+      document.getElementById('tab-signup').className = tab === 'signup' 
+        ? 'flex-1 pb-2 font-label-caps text-xs tracking-wider text-primary border-b-2 border-primary transition-colors' 
+        : 'flex-1 pb-2 font-label-caps text-xs tracking-wider text-on-surface-variant hover:text-primary transition-colors border-b-2 border-transparent';
+      
+      document.getElementById('authSubmitText').textContent = tab === 'login' ? 'Log In' : 'Create Account';
+      document.getElementById('authAlert').classList.add('hide');
+    }
+
+    async function handleAuthSubmit(e) {
+      e.preventDefault();
+      const email = document.getElementById('authEmail').value.trim();
+      const password = document.getElementById('authPassword').value;
+      const btn = document.getElementById('authSubmitBtn');
+      const textEl = document.getElementById('authSubmitText');
+      const alertEl = document.getElementById('authAlert');
+      alertEl.classList.add('hide');
+
+      const originalText = textEl.textContent;
+      textEl.innerHTML = '<span class="spinner"></span>';
+      btn.classList.add('loading-btn');
+
+      try {
+        const endpoint = state.authTab === 'login' ? '/api/auth/login' : '/api/auth/signup';
+        const data = await api('POST', endpoint, { email, password });
+        state.token = data.token;
+        state.email = data.email;
+        localStorage.setItem('route429_token', data.token);
+        localStorage.setItem('route429_email', data.email);
+        showToast(state.authTab === 'login' ? 'Welcome back!' : 'Account created!');
+        showDashboard();
+      } catch (err) {
+        alertEl.textContent = err.message || 'Something went wrong.';
+        alertEl.classList.remove('hide');
+      } finally {
+        textEl.textContent = originalText;
+        btn.classList.remove('loading-btn');
+      }
+    }
+
+    function logout() {
+      api('POST', '/api/auth/logout').catch(() => {});
+      state.token = null; state.email = null; state.projects = []; state.selectedProject = null;
+      localStorage.removeItem('route429_token'); localStorage.removeItem('route429_email');
+      
+      const authView = document.getElementById('auth-view');
+      const dashboardView = document.getElementById('dashboard-view');
+      dashboardView.classList.add('hide');
+      authView.classList.remove('hide');
+      setTimeout(() => { authView.style.opacity = '1'; }, 10);
+    }
+
+    // ── Dashboard Init ─────────────────────────────────────────────────
+    async function showDashboard() {
+      const authView = document.getElementById('auth-view');
+      const dashboardView = document.getElementById('dashboard-view');
+      
+      authView.style.opacity = '0';
+      setTimeout(() => {
+        authView.classList.add('hide');
+        dashboardView.classList.remove('hide');
+      }, 300);
+
+      document.getElementById('userEmail').textContent = state.email;
+      document.getElementById('userAvatar').textContent = (state.email || '?')[0].toUpperCase();
+      await loadProjects();
+    }
+
+    async function loadProjects() {
+      try {
+        const data = await api('GET', '/api/projects');
+        state.projects = data.projects || [];
+        renderProjectList();
+        if (state.projects.length > 0 && !state.selectedProject) {
+          selectProject(state.projects[0].name);
+        } else if (state.selectedProject) {
+          const found = state.projects.find(p => p.name === state.selectedProject);
+          if (found) renderProjectDetail(found);
+          else { state.selectedProject = null; renderEmptyState(); }
+        } else {
+          renderEmptyState();
+        }
+      } catch (err) {
+        if (err.status === 401) { logout(); return; }
+        showToast('Failed to load projects.', 'error');
+      }
+    }
+
+    // ── Sidebar ────────────────────────────────────────────────────────
+    function renderProjectList() {
+      const list = document.getElementById('projectList');
+      if (state.projects.length === 0) {
+        list.innerHTML = '<li class="text-sm text-on-surface-variant px-4 py-2">No projects yet.</li>';
+        return;
+      }
+      list.innerHTML = state.projects.map(p => {
+        const isActive = p.name === state.selectedProject;
+        const activeClass = isActive 
+          ? 'text-primary font-bold border-r-4 border-primary bg-secondary-container/40 rounded-l-lg' 
+          : 'text-on-surface-variant hover:text-primary hover:bg-surface-container rounded-lg';
+        const icon = isActive ? 'folder_open' : 'folder';
+        
+        return `
+        <li>
+          <a class="flex items-center gap-3 py-2 px-4 transition-colors duration-200 cursor-pointer ${activeClass}" onclick="selectProject('${p.name}')">
+            <span class="material-symbols-outlined">${icon}</span>
+            <span class="font-body-md text-sm truncate">${escHtml(p.name)}</span>
+          </a>
+        </li>
+      `}).join('');
+    }
+
+    function selectProject(name) {
+      if (window.innerWidth < 768) document.getElementById('sidebar').classList.add('-translate-x-full');
+      state.selectedProject = name;
+      renderProjectList();
+      const project = state.projects.find(p => p.name === name);
+      if (project) renderProjectDetail(project);
+    }
+
+    // ── Project Detail ─────────────────────────────────────────────────
+    function renderProjectDetail(project) {
+      const baseUrl = window.location.origin;
+      const proxyUrl = `${baseUrl}/p/${project.name}`;
+
+      document.getElementById('mainContent').innerHTML = `
+        <header class="flex justify-between items-center h-16 px-6 bg-surface border-b border-outline-variant/40 shrink-0">
+          <div class="flex items-center gap-4">
+            <h1 class="font-headline-md text-xl font-bold text-primary truncate max-w-[200px] md:max-w-md">${escHtml(project.name)}</h1>
+            <div class="hidden md:flex gap-2">
+              <span class="bg-secondary-container/40 text-on-secondary-fixed-variant px-2 py-0.5 rounded text-xs font-code-md font-medium border border-secondary-container/60">${providerEmoji(project.provider)} ${project.provider}</span>
+              <span class="bg-surface-container-high text-on-surface px-2 py-0.5 rounded text-xs font-code-md font-medium border border-outline-variant/30">${project.keyCount} Keys</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button class="text-on-surface-variant hover:text-primary bg-surface border border-outline-variant/40 rounded px-3 py-1 text-sm shadow-sm transition-colors" onclick="openEditModal('${project.name}')">Edit</button>
+            <button class="text-error hover:bg-error-container/20 border border-error/20 rounded px-3 py-1 text-sm transition-colors" onclick="confirmDelete('${project.name}')">Delete</button>
+          </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-4 md:p-8 pb-16">
+          <div class="max-w-4xl mx-auto space-y-6">
+            <!-- Proxy Endpoint Card -->
+            <section class="bg-surface-container-lowest border border-outline-variant/40 rounded-xl p-6 shadow-sm hover:border-outline-variant/60 transition-colors">
+              <h3 class="font-body-lg text-lg font-medium text-on-surface mb-2 flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">link</span>
+                Proxy Endpoint
+              </h3>
+              <p class="font-body-sm text-sm text-on-surface-variant mb-4">Replace standard API base URLs with your Route429 proxy endpoint.</p>
+              <div class="flex items-center gap-2">
+                <div class="flex-1 bg-surface-container-low border border-outline-variant/40 rounded-lg p-2 px-3 font-code-md text-sm text-on-surface overflow-x-auto">
+                  <code class="text-primary font-bold" id="proxy-url">${escHtml(proxyUrl)}</code>
+                </div>
+                <button class="bg-primary-container text-on-primary hover:opacity-90 p-2 px-4 rounded-lg transition-colors flex items-center justify-center shrink-0 shadow-sm text-sm" onclick="copyText('proxy-url', this)">
+                  <span class="material-symbols-outlined text-sm mr-1">content_copy</span> Copy
+                </button>
+              </div>
+            </section>
+
+            <!-- Quick Start Snippet -->
+            <section class="bg-surface-container-lowest border border-outline-variant/40 rounded-xl overflow-hidden shadow-sm">
+              <div class="bg-surface-container-low border-b border-outline-variant/40 px-6 py-3 flex justify-between items-center">
+                <h3 class="font-body-sm text-sm font-medium text-on-surface">Quick Start Example</h3>
+              </div>
+              <div class="p-6 bg-[#FAF9F6] overflow-x-auto relative">
+                <pre class="font-code-md text-sm text-on-surface leading-relaxed whitespace-pre"><span class="text-secondary">const</span> response = <span class="text-primary">await</span> fetch(<span class="text-primary-container">'${escHtml(proxyUrl)}/${examplePath(project.provider)}'</span>, {
+  method: <span class="text-primary-container">'POST'</span>,
+  headers: {
+    <span class="text-primary-container">'Content-Type'</span>: <span class="text-primary-container">'application/json'</span>
+  },
+  <span class="text-outline-variant italic">// ✓ No API key needed — Route429 injects it securely on the edge</span>
+});</pre>
+              </div>
+            </section>
+
+            <!-- Configuration Settings -->
+            <section class="bg-surface-container-lowest border border-outline-variant/40 rounded-xl p-6 shadow-sm">
+              <h3 class="font-body-lg text-lg font-medium text-on-surface mb-4 flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">settings</span> Configuration
+              </h3>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-surface-container-low border border-outline-variant/30 rounded-lg p-4">
+                  <p class="font-label-caps text-xs text-on-surface-variant mb-1">Target Base URL</p>
+                  <p class="font-code-md text-sm text-on-surface truncate break-all">${escHtml(project.targetBaseUrl)}</p>
+                </div>
+                <div class="bg-surface-container-low border border-outline-variant/30 rounded-lg p-4">
+                  <p class="font-label-caps text-xs text-on-surface-variant mb-1">API Key Header</p>
+                  <p class="font-code-md text-sm text-on-surface">${escHtml(project.apiKeyHeader)}</p>
+                </div>
+                <div class="bg-surface-container-low border border-outline-variant/30 rounded-lg p-4">
+                  <p class="font-label-caps text-xs text-on-surface-variant mb-1">Allowed Origins</p>
+                  <p class="font-code-md text-sm text-on-surface truncate">${escHtml(project.allowedOrigins)}</p>
+                </div>
+              </div>
+            </section>
+
+            <!-- API Keys Management -->
+            <section>
+              <div class="flex justify-between items-end mb-4">
+                <div>
+                  <h3 class="font-body-lg text-lg font-medium text-on-surface flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">key</span> API Keys
+                  </h3>
+                  <p class="font-body-sm text-sm text-on-surface-variant mt-1">Keys are pooled and rotated automatically.</p>
+                </div>
+              </div>
+              <div class="bg-surface-container-lowest border border-outline-variant/40 rounded-xl overflow-hidden shadow-sm">
+                <table class="w-full text-left border-collapse">
+                  <thead>
+                    <tr class="bg-surface-container-low border-b border-outline-variant/40">
+                      <th class="py-2 px-4 font-label-caps text-xs text-on-surface-variant font-medium">Key Prefix</th>
+                      <th class="py-2 px-4 font-label-caps text-xs text-on-surface-variant font-medium text-right">Index</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-outline-variant/20">
+                    ${project.apiKeys.map((k, i) => `
+                      <tr class="hover:bg-surface-container-low/50 transition-colors">
+                        <td class="py-3 px-4 font-code-md text-sm text-on-surface truncate max-w-[200px]">${escHtml(k)}</td>
+                        <td class="py-3 px-4 font-body-sm text-sm text-on-surface-variant text-right">#${i + 1}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderEmptyState() {
+      document.getElementById('mainContent').innerHTML = `
+        <div class="flex-1 flex flex-col items-center justify-center p-8 text-center bg-surface-container-low">
+          <div class="w-16 h-16 bg-primary-container/10 rounded-2xl flex items-center justify-center mb-4">
+            <span class="material-symbols-outlined text-primary-container text-4xl">rocket_launch</span>
+          </div>
+          <h2 class="font-headline-md text-2xl text-on-surface mb-2">Create your first project</h2>
+          <p class="text-on-surface-variant text-sm max-w-sm mb-6">Set up a proxy endpoint with your API keys. Route429 will handle key rotation automatically.</p>
+          <button class="bg-primary-container text-on-primary rounded-lg py-2 px-6 shadow-sm hover:opacity-90" onclick="openCreateModal()">Create Project</button>
+        </div>
+      `;
+    }
+
+    // ── Create / Edit Modal ────────────────────────────────────────────
+    function toggleModal(modalId, forceState) {
+      const modal = document.getElementById(modalId);
+      const content = modal.querySelector('#modal-content');
+      const isHidden = modal.classList.contains('hide');
+      const shouldShow = forceState !== undefined ? forceState : isHidden;
+      
+      if (shouldShow) {
+        modal.classList.remove('hide');
+        void modal.offsetWidth; // Trigger reflow
+        modal.classList.remove('opacity-0');
+        content.classList.remove('scale-95');
+        content.classList.add('scale-100');
+      } else {
+        modal.classList.add('opacity-0');
+        content.classList.remove('scale-100');
+        content.classList.add('scale-95');
+        setTimeout(() => { modal.classList.add('hide'); }, 300);
+      }
+    }
+
+    function openCreateModal() {
+      editingProject = null;
+      document.getElementById('modalTitle').textContent = 'Create Proxy Project';
+      document.getElementById('projectSubmitText').textContent = 'Create Project';
+      document.getElementById('nameGroup').style.display = '';
+      document.getElementById('projectName').value = '';
+      document.getElementById('apiKeysInput').value = '';
+      document.getElementById('allowedOrigins').value = '*';
+      document.getElementById('modalAlert').classList.add('hide');
+      selectProvider('gemini');
+      toggleModal('new-project-modal', true);
+    }
+
+    function openEditModal(name) {
+      const project = state.projects.find(p => p.name === name);
+      if (!project) return;
+      editingProject = name;
+      document.getElementById('modalTitle').textContent = `Edit: ${name}`;
+      document.getElementById('projectSubmitText').textContent = 'Save Changes';
+      document.getElementById('nameGroup').style.display = 'none';
+      document.getElementById('apiKeysInput').value = project.apiKeys.join('\n');
+      document.getElementById('allowedOrigins').value = project.allowedOrigins;
+      document.getElementById('modalAlert').classList.add('hide');
+      selectProvider(project.provider);
+      if (project.provider === 'custom') {
+        document.getElementById('targetBaseUrl').value = project.targetBaseUrl;
+        document.getElementById('apiKeyHeader').value = project.apiKeyHeader;
+        document.getElementById('apiKeyPrefix').value = project.apiKeyPrefix;
+      }
+      toggleModal('new-project-modal', true);
+    }
+
+    function closeCreateModal() { toggleModal('new-project-modal', false); }
+
+    function selectProvider(provider) {
+      selectedProvider = provider;
+      document.querySelectorAll('.provider-radio').forEach(el => {
+        const input = el.querySelector('input');
+        input.checked = input.value === provider;
+        if (input.checked) {
+          el.classList.remove('border-outline-variant/40', 'bg-surface', 'opacity-70');
+          el.classList.add('border-2', 'border-primary', 'bg-primary/5');
+        } else {
+          el.classList.add('border-outline-variant/40', 'bg-surface', 'opacity-70');
+          el.classList.remove('border-2', 'border-primary', 'bg-primary/5');
+        }
+      });
+      
+      const customFields = document.getElementById('customFields');
+      if (provider === 'custom') {
+        customFields.classList.remove('hide');
+      } else {
+        customFields.classList.add('hide');
+        const preset = PRESETS[provider];
+        document.getElementById('targetBaseUrl').value = preset.targetBaseUrl;
+        document.getElementById('apiKeyHeader').value = preset.apiKeyHeader;
+        document.getElementById('apiKeyPrefix').value = preset.apiKeyPrefix;
+      }
+    }
+
+    async function handleProjectSubmit(e) {
+      e.preventDefault();
+      const alertEl = document.getElementById('modalAlert');
+      const btn = document.getElementById('projectSubmitBtn');
+      const textEl = document.getElementById('projectSubmitText');
+      alertEl.classList.add('hide');
+
+      const keysText = document.getElementById('apiKeysInput').value.trim();
+      const apiKeys = keysText.split('\n').map(k => k.trim()).filter(Boolean);
+
+      if (apiKeys.length === 0) {
+        alertEl.textContent = 'Please add at least one API key.';
+        alertEl.classList.remove('hide');
+        return;
+      }
+
+      const payload = {
+        provider: selectedProvider,
+        apiKeys,
+        allowedOrigins: document.getElementById('allowedOrigins').value.trim() || '*',
+      };
+
+      if (selectedProvider === 'custom') {
+        payload.targetBaseUrl = document.getElementById('targetBaseUrl').value.trim();
+        payload.apiKeyHeader = document.getElementById('apiKeyHeader').value.trim();
+        payload.apiKeyPrefix = document.getElementById('apiKeyPrefix').value;
+      }
+
+      const originalText = textEl.textContent;
+      textEl.innerHTML = '<span class="spinner"></span>';
+      btn.classList.add('loading-btn');
+
+      try {
+        if (editingProject) {
+          await api('PUT', `/api/projects/${editingProject}`, payload);
+          showToast('Project updated!');
+        } else {
+          payload.name = document.getElementById('projectName').value.trim().toLowerCase();
+          await api('POST', '/api/projects', payload);
+          state.selectedProject = payload.name;
+          showToast('Project created!');
+        }
+        closeCreateModal();
+        await loadProjects();
+      } catch (err) {
+        alertEl.textContent = err.message || 'Something went wrong.';
+        alertEl.classList.remove('hide');
+      } finally {
+        textEl.textContent = originalText;
+        btn.classList.remove('loading-btn');
+      }
+    }
+
+    // ── Delete ─────────────────────────────────────────────────────────
+    async function confirmDelete(name) {
+      if (!confirm(`Delete project "${name}"? This cannot be undone.`)) return;
+      try {
+        await api('DELETE', `/api/projects/${name}`);
+        if (state.selectedProject === name) state.selectedProject = null;
+        showToast(`Project "${name}" deleted.`);
+        await loadProjects();
+        if (state.projects.length === 0) renderEmptyState();
+      } catch (err) { showToast(err.message || 'Failed to delete.', 'error'); }
+    }
+
+    // ── Copy ───────────────────────────────────────────────────────────
+    async function copyText(elementId, btnElement) {
+      const el = document.getElementById(elementId);
+      if (!el) return;
+      const text = el.innerText || el.textContent;
+      try {
+        await navigator.clipboard.writeText(text);
+        const icon = btnElement.querySelector('span');
+        const origHtml = btnElement.innerHTML;
+        btnElement.innerHTML = '<span class="material-symbols-outlined text-sm mr-1">check</span> Copied';
+        btnElement.classList.add('bg-primary');
+        setTimeout(() => {
+          btnElement.innerHTML = origHtml;
+          btnElement.classList.remove('bg-primary');
+        }, 2000);
+      } catch { showToast('Failed to copy.', 'error'); }
+    }
+
+    // ── Helpers ────────────────────────────────────────────────────────
+    function escHtml(str) { const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
+    function providerEmoji(provider) { return { gemini: '💎', openai: '🤖', anthropic: '🧠', custom: '⚙️' }[provider] || '📦'; }
+    function examplePath(provider) {
+      return { gemini: 'v1beta/models/gemini-2.5-flash:generateContent', openai: 'v1/chat/completions', anthropic: 'v1/messages', custom: 'your/api/path' }[provider] || 'your/api/path';
+    }
+
+    // ── Init ───────────────────────────────────────────────────────────
+    (async function init() {
+      if (state.token) {
+        try {
+          const data = await api('GET', '/api/auth/me');
+          state.email = data.email;
+          showDashboard();
+        } catch {
+          localStorage.removeItem('route429_token'); localStorage.removeItem('route429_email');
+          state.token = null; state.email = null;
+        }
+      }
+    })();
+
+    document.getElementById('new-project-modal').addEventListener('click', function(e) { if (e.target === this) closeCreateModal(); });
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeCreateModal(); });
+  </script>
+</body>
+</html>
