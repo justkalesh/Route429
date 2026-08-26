@@ -83,3 +83,7 @@ Request → Parse Project from URL → Load Config from KV
 - **Password Hashing**: User passwords are securely hashed using `PBKDF2-SHA256` via the native Web Crypto API.
 - **Edge Deployment**: Keys are injected at the edge and never returned to the client browser.
 - **CORS Handling**: You can configure allowed origins per project directly in the dashboard.
+
+---
+*Route429 — an open-source proxy. Made by [Building It Live](https://buildingitlive.com).*  
+*Need help? Email [buildingitlive@gmail.com](mailto:buildingitlive@gmail.com).*

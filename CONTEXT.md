@@ -37,8 +37,8 @@ To provide a seamless, zero-dependency API key rotation proxy deployed on Cloudf
 - **Compute**: Cloudflare Workers
 - **Language**: TypeScript
 - **Storage**: Cloudflare KV
-- **Frontend**: HTML / CSS (Tailwind) / Vanilla JS (No external framework dependencies)
+- **Frontend**: HTML / Vanilla CSS / Vanilla JS (No external framework dependencies)
 - **Security**: Web Crypto API (PBKDF2)
 
 ## Current Phase
-**Deployment Ready**. The multi-tenant architecture is complete. The proxy logic reads per-project configuration from Cloudflare KV, and users can manage their keys via the dashboard UI. The system is ready to be deployed to production.
+**Deployed and Live**. The multi-tenant architecture is complete and the application is running in production. The proxy logic reads per-project configuration from Cloudflare KV, and users can manage their keys via the dashboard UI. The landing page and dashboard follow a 'Serene Operational Excellence' light design aesthetic.
