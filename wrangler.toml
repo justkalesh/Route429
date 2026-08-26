@@ -6,7 +6,7 @@ compatibility_date = "2024-03-20"
 # Run: npx wrangler kv:namespace create ROUTE429_KV
 [[kv_namespaces]]
 binding = "ROUTE429_KV"
-id = "2d0c2438cb464010acc36611293a525d"
+id = "f43ac11dcd224bb3873bf9bca740eeb2"
 
 [[rules]]
 type = "Text"
