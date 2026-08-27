@@ -495,19 +495,121 @@ response = requests.post(
       <p>If you're using an AI coding assistant to refactor your codebase to use Route429, just paste this prompt into your IDE chat:</p>
       
       <div class="prompt-box">
-<span class="prompt-label">Copy & Paste to your AI Assistant</span>
-I am migrating my application to use Route429, an API key rotation proxy. 
+<span class="prompt-label">Copy &amp; Paste to your AI Assistant</span>
+## Route429 — AI API Key Rotation Proxy (Context for AI Agents)
 
-Please review my codebase and do the following:
-1. Find all instances where I am initializing an AI provider SDK (OpenAI, Anthropic, Gemini) or making raw HTTP fetch requests to their APIs.
-2. Remove any direct usage of my secret API keys from the client code.
-3. Replace the provider's standard base URL with my Route429 proxy URL: `https://route429.parth-ie-kalash.workers.dev/p/MY_PROJECT_NAME`
-4. If an SDK strictly requires an API key parameter to initialize, pass a dummy string like `"route429-managed"`.
-5. Ensure CORS headers are not being stripped by custom interceptors, as Route429 handles CORS automatically.
+### What is Route429?
+Route429 is an edge-deployed API proxy (Cloudflare Workers) that sits between your app and AI provider APIs (OpenAI, Gemini, Anthropic, or any custom API). It manages a pool of API keys per project and automatically rotates to the next key when one gets rate-limited (HTTP 429). Your app never sees a rate-limit error.
 
-Do not change the structure of the payloads or the models used, only the URL and authentication mechanism.
+### How it works
+1. You create a "project" on Route429's dashboard and add your API keys to its pool.
+2. Route429 gives you a proxy URL: `https://route429.parth-ie-kalash.workers.dev/p/PROJECT_NAME`
+3. Your app sends requests to this proxy URL instead of the provider's URL.
+4. Route429 injects the API key on the server side and forwards the request upstream.
+5. If the upstream returns 429, Route429 automatically retries with the next key in the pool.
 
-If the project has a Proxy Secret configured, add the header `X-Proxy-Secret: YOUR_SECRET` to every request.</div>
+### URL Format
+Replace the provider's base URL with the Route429 proxy URL. The path after `/p/PROJECT_NAME/` is forwarded as-is.
+
+| Provider | Original Base URL | Route429 Proxy URL |
+|----------|------------------|--------------------|
+| Gemini | `https://generativelanguage.googleapis.com` | `https://route429.parth-ie-kalash.workers.dev/p/PROJECT_NAME` |
+| OpenAI | `https://api.openai.com` | `https://route429.parth-ie-kalash.workers.dev/p/PROJECT_NAME` |
+| Anthropic | `https://api.anthropic.com` | `https://route429.parth-ie-kalash.workers.dev/p/PROJECT_NAME` |
+
+Example: `https://api.openai.com/v1/chat/completions` becomes `https://route429.parth-ie-kalash.workers.dev/p/PROJECT_NAME/v1/chat/completions`
+
+### Integration Rules
+1. **Remove all API keys from client/frontend code.** Route429 injects them server-side.
+2. **Replace the provider's base URL** with your Route429 proxy URL.
+3. **If using an SDK** that requires an API key to initialize (e.g., `new OpenAI({ apiKey: ... })`), pass a dummy string like `"route429-managed"`.
+4. **Do NOT change request payloads, models, or response handling.** Only the URL and auth mechanism change.
+5. **Keep `Content-Type: application/json`** in your headers.
+6. **Do NOT strip CORS headers** — Route429 handles CORS automatically.
+
+### Proxy Secret (Optional Endpoint Protection)
+If the project has a Proxy Secret configured, every request MUST include an `X-Proxy-Secret` header. Without it, the proxy returns `401 Unauthorized`.
+
+```
+headers: {
+  'Content-Type': 'application/json',
+  'X-Proxy-Secret': 'YOUR_PROXY_SECRET'  // only if configured
+}
+```
+
+### Integration Examples
+
+**JavaScript (fetch):**
+```js
+const response = await fetch('https://route429.parth-ie-kalash.workers.dev/p/PROJECT_NAME/v1beta/models/gemini-2.5-flash:generateContent', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-Proxy-Secret': 'YOUR_SECRET' // omit if no secret
+  },
+  body: JSON.stringify({ contents: [{ parts: [{ text: "Hello!" }] }] })
+});
+```
+
+**Python (requests):**
+```python
+import requests
+response = requests.post(
+    "https://route429.parth-ie-kalash.workers.dev/p/PROJECT_NAME/v1/chat/completions",
+    headers={"X-Proxy-Secret": "YOUR_SECRET"},
+    json={"model": "gpt-4", "messages": [{"role": "user", "content": "Hello!"}]}
+)
+```
+
+**cURL:**
+```bash
+curl -X POST "https://route429.parth-ie-kalash.workers.dev/p/PROJECT_NAME/v1/messages" \
+  -H "Content-Type: application/json" \
+  -H "X-Proxy-Secret: YOUR_SECRET" \
+  -d '{"model":"claude-sonnet-4-20250514","messages":[{"role":"user","content":"Hello!"}]}'
+```
+
+**OpenAI SDK (Node.js):**
+```js
+import OpenAI from 'openai';
+const openai = new OpenAI({
+  apiKey: 'route429-managed',
+  baseURL: 'https://route429.parth-ie-kalash.workers.dev/p/PROJECT_NAME/v1'
+});
+// Note: SDK does not support custom headers for proxy secret. Use raw fetch if secret is needed.
+```
+
+**Google GenAI SDK (Node.js):**
+```js
+import { GoogleGenAI } from '@google/genai';
+const ai = new GoogleGenAI({
+  apiKey: 'route429-managed',
+  httpOptions: { baseUrl: 'https://route429.parth-ie-kalash.workers.dev/p/PROJECT_NAME' }
+});
+// Note: Some SDKs override the base URL internally. If issues arise, switch to raw fetch.
+```
+
+### Error Responses from Route429
+| Status | Meaning |
+|--------|---------|
+| `401` | Missing or wrong `X-Proxy-Secret` header |
+| `404` | Project name not found |
+| `502` | Upstream API fetch failed (network error) |
+| `503` | All API keys in the pool are rate-limited |
+
+### Gotchas
+- If an SDK has strict internal URL construction (e.g., appends its own paths), the proxy URL may not work. In that case, **switch to raw `fetch`/`requests` calls**.
+- Route429 forwards the request body as a stream. If the first key gets a 429 on a POST request, it rotates to the next key, but the body stream is consumed. For POST requests, this means only one retry attempt per key.
+- The `X-Proxy-Secret` header is automatically stripped before forwarding to the upstream API.
+
+### Task
+Please review my codebase and migrate all AI API calls to use Route429:
+1. Find all API calls to OpenAI, Gemini, Anthropic, or other AI providers.
+2. Replace provider base URLs with: `https://route429.parth-ie-kalash.workers.dev/p/MY_PROJECT_NAME`
+3. Remove API keys from client code.
+4. Add `X-Proxy-Secret` header if my project uses one.
+5. If using SDKs, pass `"route429-managed"` as the API key and override `baseURL`.
+6. Do not change payloads, models, or response handling.</div>
     </div>
 
     <div class="doc-section">
