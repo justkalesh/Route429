@@ -84,6 +84,19 @@ Request → Parse Project from URL → Load Config from KV
 - **Edge Deployment**: Keys are injected at the edge and never returned to the client browser.
 - **CORS Handling**: You can configure allowed origins per project directly in the dashboard.
 
+### Proxy Secret (Endpoint Protection)
+
+By default, anyone who knows your proxy URL can use it. To lock it down, set a **Proxy Secret** in your project settings. When enabled, every request must include an `X-Proxy-Secret` header:
+
+```bash
+curl -X POST "https://route429.dev/p/my-project/v1/chat/completions" \
+  -H "Content-Type: application/json" \
+  -H "X-Proxy-Secret: your-secret-here" \
+  -d '{"messages":[{"role":"user","content":"Hello!"}]}'
+```
+
+Requests without the correct header receive a `401 Unauthorized` response. The secret is never forwarded to the upstream API.
+
 ---
 *Route429 — an open-source proxy. Made by [Building It Live](https://buildingitlive.com).*  
 *Need help? Email [buildingitlive@gmail.com](mailto:buildingitlive@gmail.com).*

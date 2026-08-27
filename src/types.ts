@@ -75,6 +75,8 @@ export interface ProjectConfig {
   apiKeyPrefix: string;
   apiKeys: string[];
   allowedOrigins: string;
+  /** Optional secret that clients must send via X-Proxy-Secret header */
+  proxySecret?: string;
   createdAt: string;
   updatedAt: string;
 }

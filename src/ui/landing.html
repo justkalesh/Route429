@@ -395,7 +395,7 @@
     <article class="feature">
       <div class="feature-tag">04 · security</div>
       <h3>Secure by design</h3>
-      <p>API keys are encrypted at rest in Cloudflare KV. Never exposed in responses or client code.</p>
+      <p>API keys encrypted at rest. Optional Proxy Secret locks endpoints — only requests with the correct header get through.</p>
     </article>
     <article class="feature">
       <div class="feature-tag">05 · access</div>
@@ -505,7 +505,39 @@ Please review my codebase and do the following:
 4. If an SDK strictly requires an API key parameter to initialize, pass a dummy string like `"route429-managed"`.
 5. Ensure CORS headers are not being stripped by custom interceptors, as Route429 handles CORS automatically.
 
-Do not change the structure of the payloads or the models used, only the URL and authentication mechanism.</div>
+Do not change the structure of the payloads or the models used, only the URL and authentication mechanism.
+
+If the project has a Proxy Secret configured, add the header `X-Proxy-Secret: YOUR_SECRET` to every request.</div>
+    </div>
+
+    <div class="doc-section">
+      <h3>4. Proxy Secret (Endpoint Protection)</h3>
+      <p>Set a <strong>Proxy Secret</strong> in your project dashboard to lock down your endpoint. When enabled, every request must include an <code>X-Proxy-Secret</code> header — requests without it get a <code>401 Unauthorized</code>.</p>
+      <p>This prevents anyone who discovers your proxy URL from using it without your permission, even from <code>curl</code> or Postman.</p>
+
+      <pre class="code-block"><span class="comment"># cURL with Proxy Secret</span>
+curl -X POST <span class="string">"https://route429.dev/p/YOUR_PROJECT/v1/chat/completions"</span> \
+  -H <span class="string">"Content-Type: application/json"</span> \
+  -H <span class="string">"X-Proxy-Secret: your-secret-here"</span> \
+  -d <span class="string">'{"messages":[{"role":"user","content":"Hello!"}]}'</span></pre>
+
+      <pre class="code-block"><span class="comment">// JavaScript fetch with Proxy Secret</span>
+<span class="keyword">const</span> response = <span class="keyword">await</span> fetch(<span class="string">'https://route429.dev/p/YOUR_PROJECT/v1beta/models/gemini-2.5-flash:generateContent'</span>, {
+  method: <span class="string">'POST'</span>,
+  headers: {
+    <span class="string">'Content-Type'</span>: <span class="string">'application/json'</span>,
+    <span class="string">'X-Proxy-Secret'</span>: <span class="string">'your-secret-here'</span>
+  },
+  body: JSON.stringify({ contents: [{ parts: [{ text: <span class="string">"Hello!"</span> }] }] })
+});</pre>
+
+      <pre class="code-block"><span class="comment"># Python with Proxy Secret</span>
+<span class="keyword">import</span> requests
+response = requests.post(
+    <span class="string">"https://route429.dev/p/YOUR_PROJECT/v1/messages"</span>,
+    headers={<span class="string">"X-Proxy-Secret"</span>: <span class="string">"your-secret-here"</span>},
+    json={<span class="string">"messages"</span>: [{<span class="string">"role"</span>: <span class="string">"user"</span>, <span class="string">"content"</span>: <span class="string">"Hello!"</span>}]}
+)</pre>
     </div>
   </div>
 </section>

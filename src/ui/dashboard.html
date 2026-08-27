@@ -227,6 +227,12 @@
             <label class="block font-body-sm text-sm font-medium text-on-surface mb-1">Allowed Origins (CORS)</label>
             <input id="allowedOrigins" class="w-full bg-surface border border-outline-variant/40 rounded-lg px-4 py-2 font-body-md text-sm outline-none" type="text" value="*"/>
           </div>
+
+          <div>
+            <label class="block font-body-sm text-sm font-medium text-on-surface mb-1">Proxy Secret <span class="text-on-surface-variant font-normal">(optional)</span></label>
+            <input id="proxySecret" class="w-full bg-surface border border-outline-variant/40 rounded-lg px-4 py-2 font-code-md text-sm outline-none" type="text" placeholder="e.g., my-super-secret-key"/>
+            <p class="font-body-sm text-xs text-on-surface-variant mt-1">If set, clients must send <code class="bg-surface-container-high px-1 rounded">X-Proxy-Secret</code> header to use this endpoint. Leave blank for open access.</p>
+          </div>
         </div>
         
         <div class="px-6 py-4 border-t border-outline-variant/40 bg-surface-container-low flex justify-end gap-3 shrink-0">
@@ -451,7 +457,8 @@
                 <pre class="font-code-md text-sm text-on-surface leading-relaxed whitespace-pre"><span class="text-secondary">const</span> response = <span class="text-primary">await</span> fetch(<span class="text-primary-container">'${escHtml(proxyUrl)}/${examplePath(project.provider)}'</span>, {
   method: <span class="text-primary-container">'POST'</span>,
   headers: {
-    <span class="text-primary-container">'Content-Type'</span>: <span class="text-primary-container">'application/json'</span>
+    <span class="text-primary-container">'Content-Type'</span>: <span class="text-primary-container">'application/json'</span>${project.hasProxySecret ? `,
+    <span class="text-primary-container">'X-Proxy-Secret'</span>: <span class="text-primary-container">'YOUR_PROXY_SECRET'</span>` : ''}
   },
   <span class="text-outline-variant italic">// ✓ No API key needed — Route429 injects it securely on the edge</span>
 });</pre>
@@ -475,6 +482,10 @@
                 <div class="bg-surface-container-low border border-outline-variant/30 rounded-lg p-4">
                   <p class="font-label-caps text-xs text-on-surface-variant mb-1">Allowed Origins</p>
                   <p class="font-code-md text-sm text-on-surface truncate">${escHtml(project.allowedOrigins)}</p>
+                </div>
+                <div class="bg-surface-container-low border border-outline-variant/30 rounded-lg p-4">
+                  <p class="font-label-caps text-xs text-on-surface-variant mb-1">Proxy Secret</p>
+                  <p class="font-code-md text-sm ${project.hasProxySecret ? 'text-primary font-bold' : 'text-on-surface-variant'}">${project.hasProxySecret ? '🔒 ' + escHtml(project.proxySecret) : '🔓 Not set (open)'}</p>
                 </div>
               </div>
             </section>
@@ -555,6 +566,7 @@
       document.getElementById('projectName').value = '';
       document.getElementById('apiKeysInput').value = '';
       document.getElementById('allowedOrigins').value = '*';
+      document.getElementById('proxySecret').value = '';
       document.getElementById('modalAlert').classList.add('hide');
       selectProvider('gemini');
       toggleModal('new-project-modal', true);
@@ -569,6 +581,8 @@
       document.getElementById('nameGroup').style.display = 'none';
       document.getElementById('apiKeysInput').value = project.apiKeys.join('\n');
       document.getElementById('allowedOrigins').value = project.allowedOrigins;
+      document.getElementById('proxySecret').value = project.hasProxySecret ? '' : '';
+      document.getElementById('proxySecret').placeholder = project.hasProxySecret ? '(secret is set — enter new value to change)' : 'e.g., my-super-secret-key';
       document.getElementById('modalAlert').classList.add('hide');
       selectProvider(project.provider);
       if (project.provider === 'custom') {
@@ -628,6 +642,15 @@
         apiKeys,
         allowedOrigins: document.getElementById('allowedOrigins').value.trim() || '*',
       };
+
+      const secretVal = document.getElementById('proxySecret').value.trim();
+      // Only send proxySecret if user typed something (on edit, blank means "don't change")
+      if (secretVal) {
+        payload.proxySecret = secretVal;
+      } else if (!editingProject) {
+        // On create, explicitly send empty to mean "no secret"
+        payload.proxySecret = '';
+      }
 
       if (selectedProvider === 'custom') {
         payload.targetBaseUrl = document.getElementById('targetBaseUrl').value.trim();

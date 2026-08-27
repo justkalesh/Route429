@@ -55,6 +55,7 @@ async function handleCreateProject(
     apiKeyPrefix?: string;
     apiKeys?: string[];
     allowedOrigins?: string;
+    proxySecret?: string;
   };
 
   try {
@@ -145,6 +146,7 @@ async function handleCreateProject(
     apiKeyPrefix,
     apiKeys: apiKeys.map((k) => k.trim()),
     allowedOrigins,
+    proxySecret: body.proxySecret?.trim() || undefined,
     createdAt: now,
     updatedAt: now,
   };
@@ -237,6 +239,7 @@ async function handleUpdateProject(
     apiKeyPrefix: string;
     apiKeys: string[];
     allowedOrigins: string;
+    proxySecret: string;
   }>;
 
   try {
@@ -276,6 +279,10 @@ async function handleUpdateProject(
   }
   if (body.allowedOrigins !== undefined) {
     project.allowedOrigins = body.allowedOrigins;
+  }
+  if (body.proxySecret !== undefined) {
+    // Empty string removes the secret; non-empty sets it
+    project.proxySecret = body.proxySecret.trim() || undefined;
   }
 
   project.updatedAt = new Date().toISOString();
@@ -321,6 +328,12 @@ async function handleDeleteProject(
 
 /** Mask API keys in project config for client-side display. */
 function maskProjectKeys(project: ProjectConfig): Record<string, unknown> {
+  const maskedSecret = project.proxySecret
+    ? project.proxySecret.length <= 8
+      ? `${project.proxySecret.slice(0, 2)}***`
+      : `${project.proxySecret.slice(0, 4)}...${project.proxySecret.slice(-3)}`
+    : null;
+
   return {
     ...project,
     apiKeys: project.apiKeys.map((k) => {
@@ -328,6 +341,8 @@ function maskProjectKeys(project: ProjectConfig): Record<string, unknown> {
       return `${k.slice(0, 6)}...${k.slice(-4)}`;
     }),
     keyCount: project.apiKeys.length,
+    proxySecret: maskedSecret,
+    hasProxySecret: !!project.proxySecret,
   };
 }
 

@@ -41,4 +41,4 @@ To provide a seamless, zero-dependency API key rotation proxy deployed on Cloudf
 - **Security**: Web Crypto API (PBKDF2)
 
 ## Current Phase
-**Deployed and Live**. The multi-tenant architecture is complete and the application is running in production. The proxy logic reads per-project configuration from Cloudflare KV, and users can manage their keys via the dashboard UI. The landing page and dashboard follow a 'Serene Operational Excellence' light design aesthetic.
+**Deployed and Live**. The multi-tenant architecture is complete and the application is running in production. Features include automatic key rotation, multi-project dashboard, provider presets, CORS configuration, and optional per-project Proxy Secret for endpoint protection. The landing page and dashboard follow a 'Serene Operational Excellence' light design aesthetic.

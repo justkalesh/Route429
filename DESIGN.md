@@ -57,6 +57,18 @@ Route429 is a stateless (edge-deployed) proxy and multi-tenant SaaS platform tha
 | Key exposure in responses | Keys are only added to upstream requests, never reflected to clients. |
 | CORS abuse | Configurable `ALLOWED_ORIGINS` per project. |
 | Upstream URL injection | `TARGET_BASE_URL` is configured per project in the dashboard; the client only controls the trailing path. |
+| Unauthorized proxy usage | Optional per-project **Proxy Secret** (`X-Proxy-Secret` header) restricts who can use the endpoint. |
+
+### 5. Proxy Secret (Plain-Text Comparison)
+
+**Decision**: Store the proxy secret as plain text in KV and compare it directly against the incoming `X-Proxy-Secret` header.
+
+**Rationale**: 
+- The proxy secret is **not a user password**. It is a machine-to-machine token set by the project owner.
+- Hashing (e.g., bcrypt/PBKDF2) would add ~50ms latency to every proxied request, which defeats the purpose of an edge proxy.
+- The secret is stored in Cloudflare KV, which is encrypted at rest. The threat model is identical to how API keys themselves are stored.
+
+**Trade-off**: If someone gains read access to the KV store, they can read the proxy secret. However, they would also be able to read the API keys at that point, making the secret moot. The real protection is Cloudflare's infrastructure security.
 
 ## Flow Diagram
 

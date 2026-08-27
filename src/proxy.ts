@@ -69,7 +69,7 @@ function buildCorsHeaders(
     "Access-Control-Allow-Origin": allowOrigin,
     "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
     "Access-Control-Allow-Headers":
-      "Content-Type, Authorization, X-Requested-With, Accept, Origin",
+      "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Proxy-Secret",
     "Access-Control-Max-Age": "86400",
   };
 
@@ -119,6 +119,24 @@ export async function handleProxy(
     return new Response(null, { status: 204, headers: corsHeaders });
   }
 
+  // Validate proxy secret if configured
+  if (config.proxySecret) {
+    const clientSecret = request.headers.get("X-Proxy-Secret");
+    if (!clientSecret || clientSecret !== config.proxySecret) {
+      console.warn(
+        `[Route429:${config.name}] Proxy secret mismatch — rejecting request.`
+      );
+      return errorResponse(
+        {
+          error: "unauthorized",
+          message: "Invalid or missing X-Proxy-Secret header.",
+        },
+        401,
+        corsHeaders
+      );
+    }
+  }
+
   const keys = config.apiKeys;
   const maxRetries = keys.length;
 
@@ -129,8 +147,9 @@ export async function handleProxy(
     config.targetBaseUrl
   );
 
-  // Prepare forwarded headers
+  // Prepare forwarded headers (strip proxy secret so it doesn't leak upstream)
   const forwardHeaders = sanitizeHeaders(request.headers);
+  forwardHeaders.delete("X-Proxy-Secret");
 
   // Get or init round-robin counter for this project
   let rrIndex = roundRobinCounters.get(config.name) ?? 0;
