@@ -240,6 +240,8 @@ async function handleUpdateProject(
     apiKeys: string[];
     allowedOrigins: string;
     proxySecret: string;
+    appendKey: string;
+    removeKeyIndex: number;
   }>;
 
   try {
@@ -276,6 +278,34 @@ async function handleUpdateProject(
       );
     }
     project.apiKeys = body.apiKeys.map((k) => k.trim());
+  }
+  // Append a single key to the pool
+  if (body.appendKey !== undefined) {
+    const newKey = body.appendKey.trim();
+    if (!newKey) {
+      return jsonResponse(
+        { error: "invalid_key", message: "API key must be a non-empty string." },
+        400
+      );
+    }
+    project.apiKeys.push(newKey);
+  }
+  // Remove a key by index
+  if (body.removeKeyIndex !== undefined) {
+    const idx = body.removeKeyIndex;
+    if (typeof idx !== "number" || idx < 0 || idx >= project.apiKeys.length) {
+      return jsonResponse(
+        { error: "invalid_index", message: "Invalid key index." },
+        400
+      );
+    }
+    if (project.apiKeys.length <= 1) {
+      return jsonResponse(
+        { error: "min_keys", message: "Cannot remove the last API key. At least one key is required." },
+        400
+      );
+    }
+    project.apiKeys.splice(idx, 1);
   }
   if (body.allowedOrigins !== undefined) {
     project.allowedOrigins = body.allowedOrigins;

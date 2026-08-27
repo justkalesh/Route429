@@ -505,18 +505,31 @@
                   <thead>
                     <tr class="bg-surface-container-low border-b border-outline-variant/40">
                       <th class="py-2 px-4 font-label-caps text-xs text-on-surface-variant font-medium">Key Prefix</th>
-                      <th class="py-2 px-4 font-label-caps text-xs text-on-surface-variant font-medium text-right">Index</th>
+                      <th class="py-2 px-4 font-label-caps text-xs text-on-surface-variant font-medium text-center w-16">Index</th>
+                      <th class="py-2 px-4 font-label-caps text-xs text-on-surface-variant font-medium text-right w-20">Action</th>
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-outline-variant/20">
                     ${project.apiKeys.map((k, i) => `
-                      <tr class="hover:bg-surface-container-low/50 transition-colors">
+                      <tr class="hover:bg-surface-container-low/50 transition-colors group">
                         <td class="py-3 px-4 font-code-md text-sm text-on-surface truncate max-w-[200px]">${escHtml(k)}</td>
-                        <td class="py-3 px-4 font-body-sm text-sm text-on-surface-variant text-right">#${i + 1}</td>
+                        <td class="py-3 px-4 font-body-sm text-sm text-on-surface-variant text-center">#${i + 1}</td>
+                        <td class="py-3 px-4 text-right">
+                          <button class="text-on-surface-variant hover:text-error opacity-0 group-hover:opacity-100 transition-all text-xs border border-transparent hover:border-error/20 rounded px-2 py-1" onclick="deleteKey('${project.name}', ${i})" ${project.keyCount <= 1 ? 'disabled title="Cannot delete the last key"' : ''}>
+                            <span class="material-symbols-outlined text-sm">delete</span>
+                          </button>
+                        </td>
                       </tr>
                     `).join('')}
                   </tbody>
                 </table>
+                <!-- Add Key Row -->
+                <div class="border-t border-outline-variant/40 px-4 py-3 flex gap-2 bg-surface-container-low/50">
+                  <input id="newKeyInput" type="text" class="flex-1 bg-surface border border-outline-variant/40 rounded-lg px-3 py-2 font-code-md text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" placeholder="Paste a new API key..." />
+                  <button class="bg-primary-container text-on-primary hover:opacity-90 px-4 py-2 rounded-lg transition-opacity flex items-center gap-1 text-sm shadow-sm shrink-0" onclick="addKey('${project.name}')">
+                    <span class="material-symbols-outlined text-sm">add</span> Add Key
+                  </button>
+                </div>
               </div>
             </section>
           </div>
@@ -693,6 +706,33 @@
         await loadProjects();
         if (state.projects.length === 0) renderEmptyState();
       } catch (err) { showToast(err.message || 'Failed to delete.', 'error'); }
+    }
+
+    // ── Key Management ────────────────────────────────────────────────
+    async function addKey(projectName) {
+      const input = document.getElementById('newKeyInput');
+      const newKey = input.value.trim();
+      if (!newKey) { showToast('Please enter an API key.', 'error'); return; }
+
+      try {
+        await api('PUT', `/api/projects/${projectName}`, { appendKey: newKey });
+        input.value = '';
+        showToast('Key added!');
+        await loadProjects();
+      } catch (err) {
+        showToast(err.message || 'Failed to add key.', 'error');
+      }
+    }
+
+    async function deleteKey(projectName, keyIndex) {
+      if (!confirm('Remove this API key from the pool?')) return;
+      try {
+        await api('PUT', `/api/projects/${projectName}`, { removeKeyIndex: keyIndex });
+        showToast('Key removed.');
+        await loadProjects();
+      } catch (err) {
+        showToast(err.message || 'Failed to remove key.', 'error');
+      }
     }
 
     // ── Copy ───────────────────────────────────────────────────────────
