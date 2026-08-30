@@ -259,19 +259,44 @@
     font-size: 0.85rem;
     color: var(--accent);
     line-height: 1.5;
-    white-space: pre-wrap;
+  }
+  .prompt-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--accent-line);
+    padding-bottom: 8px;
   }
   .prompt-label {
-    display: inline-block;
     font-family: var(--font-mono);
     font-size: 0.72rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--accent);
-    margin-bottom: 8px;
-    border-bottom: 1px solid var(--accent-line);
-    padding-bottom: 4px;
+  }
+  .copy-prompt-btn {
+    background: var(--accent);
+    color: var(--accent-ink);
+    border: none;
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-shrink: 0;
+  }
+  .copy-prompt-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+  .copy-prompt-btn:active { transform: translateY(0); }
+  .copy-prompt-btn.copied { background: #2D6B4E; }
+  .prompt-content {
+    white-space: pre-wrap;
   }
 
   /* ---------- FINAL CTA ---------- */
@@ -494,8 +519,12 @@ response = requests.post(
       <h3>3. Agentic AI Context (Cursor, Claude, ChatGPT)</h3>
       <p>If you're using an AI coding assistant to refactor your codebase to use Route429, just paste this prompt into your IDE chat:</p>
       
-      <div class="prompt-box">
-<span class="prompt-label">Copy &amp; Paste to your AI Assistant</span>
+      <div class="prompt-box" id="agentPromptBox">
+        <div class="prompt-header">
+          <span class="prompt-label">Copy &amp; Paste to your AI Assistant</span>
+          <button class="copy-prompt-btn" id="copyPromptBtn" onclick="copyPrompt()">&#x2398; Copy Prompt</button>
+        </div>
+        <div class="prompt-content" id="promptContent">
 ## Route429 — AI API Key Rotation Proxy (Context for AI Agents)
 
 ### What is Route429?
@@ -610,6 +639,7 @@ Please review my codebase and migrate all AI API calls to use Route429:
 4. Add `X-Proxy-Secret` header if my project uses one.
 5. If using SDKs, pass `"route429-managed"` as the API key and override `baseURL`.
 6. Do not change payloads, models, or response handling.</div>
+      </div>
     </div>
 
     <div class="doc-section">
@@ -717,6 +747,36 @@ response = requests.post(
       });
     });
   })();
+
+  function copyPrompt() {
+    var content = document.getElementById('promptContent');
+    var btn = document.getElementById('copyPromptBtn');
+    var text = content.innerText || content.textContent;
+    text = text.trim();
+    navigator.clipboard.writeText(text).then(function() {
+      btn.innerHTML = '&#x2713; Copied!';
+      btn.classList.add('copied');
+      setTimeout(function() {
+        btn.innerHTML = '&#x2398; Copy Prompt';
+        btn.classList.remove('copied');
+      }, 2000);
+    }).catch(function() {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      btn.innerHTML = '&#x2713; Copied!';
+      btn.classList.add('copied');
+      setTimeout(function() {
+        btn.innerHTML = '&#x2398; Copy Prompt';
+        btn.classList.remove('copied');
+      }, 2000);
+    });
+  }
 </script>
 
 </body>
