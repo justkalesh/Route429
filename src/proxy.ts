@@ -204,6 +204,13 @@ export async function handleProxy(
   let rrIndex = roundRobinCounters.get(config.name) ?? 0;
   const startIndex = rrIndex % keys.length;
 
+  // Buffer request body before the retry loop — ReadableStream can only be
+  // read once, so we need an ArrayBuffer that can be reused across retries.
+  let requestBody: ArrayBuffer | null = null;
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    requestBody = await request.arrayBuffer();
+  }
+
   // Retry loop with key rotation
   let lastResponse: Response | null = null;
   let lastRetryAfter: string | null = null;
@@ -226,10 +233,7 @@ export async function handleProxy(
       lastResponse = await fetch(upstreamUrl.toString(), {
         method: request.method,
         headers: forwardHeaders,
-        body:
-          request.method !== "GET" && request.method !== "HEAD"
-            ? request.body
-            : undefined,
+        body: requestBody,
         redirect: "manual",
       });
     } catch (fetchError) {
