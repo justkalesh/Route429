@@ -102,6 +102,50 @@ export function projectKey(name: string): string {
   return `projects:${name.toLowerCase()}`;
 }
 
+// ── Logging Models ────────────────────────────────────────────────────────
+
+/** A single proxy request log entry stored in KV at `logs:<project>` */
+export interface LogEntry {
+  /** ISO timestamp of the request */
+  timestamp: string;
+  /** HTTP method (GET, POST, etc.) */
+  method: string;
+  /** Upstream path that was hit */
+  path: string;
+  /** Final HTTP status returned to the client */
+  status: number;
+  /** Number of API keys attempted before success or exhaustion */
+  keysAttempted: number;
+  /** Whether a key rotation occurred (i.e. at least one 429 was hit) */
+  rotated: boolean;
+  /** Whether all keys in the pool were exhausted */
+  exhausted: boolean;
+  /** Total request duration in milliseconds */
+  durationMs: number;
+}
+
+/** Aggregate stats for a project, stored in KV at `stats:<project>` */
+export interface ProjectStats {
+  totalRequests: number;
+  /** How many times a 429 triggered rotation to another key */
+  totalRotations: number;
+  /** How many times ALL keys were exhausted (503 returned) */
+  totalExhausted: number;
+  /** ISO timestamp of the last request, or null if none */
+  lastRequestAt: string | null;
+}
+
+export function logKey(projectName: string): string {
+  return `logs:${projectName.toLowerCase()}`;
+}
+
+export function statsKey(projectName: string): string {
+  return `stats:${projectName.toLowerCase()}`;
+}
+
+/** Maximum number of log entries retained per project */
+export const MAX_LOG_ENTRIES = 100;
+
 // ── Response Helpers ──────────────────────────────────────────────────────
 
 export function jsonResponse(

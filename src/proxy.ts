@@ -5,7 +5,16 @@
 // ProjectConfig object (loaded from KV) instead of reading env vars directly.
 // ---------------------------------------------------------------------------
 
-import { type ProjectConfig, type ErrorBody } from "./types";
+import {
+  type ProjectConfig,
+  type ErrorBody,
+  type Env,
+  type LogEntry,
+  type ProjectStats,
+  logKey,
+  statsKey,
+  MAX_LOG_ENTRIES,
+} from "./types";
 
 // ── Per-project round-robin counters ──────────────────────────────────────
 // Each project maintains its own counter within the isolate so successive
@@ -97,20 +106,60 @@ function errorResponse(
   });
 }
 
+// ── Log Writer ────────────────────────────────────────────────────────────
+
+/**
+ * Append a log entry and update stats for a project.
+ * Designed to be called inside ctx.waitUntil() so it doesn't block the response.
+ */
+async function appendLog(
+  env: Env,
+  projectName: string,
+  entry: LogEntry
+): Promise<void> {
+  // Update logs (rolling window)
+  const logsRaw = await env.ROUTE429_KV.get(logKey(projectName));
+  const logs: LogEntry[] = logsRaw ? JSON.parse(logsRaw) : [];
+  logs.push(entry);
+  // Trim to max entries
+  while (logs.length > MAX_LOG_ENTRIES) {
+    logs.shift();
+  }
+  await env.ROUTE429_KV.put(logKey(projectName), JSON.stringify(logs));
+
+  // Update stats
+  const statsRaw = await env.ROUTE429_KV.get(statsKey(projectName));
+  const stats: ProjectStats = statsRaw
+    ? JSON.parse(statsRaw)
+    : { totalRequests: 0, totalRotations: 0, totalExhausted: 0, lastRequestAt: null };
+
+  stats.totalRequests++;
+  if (entry.rotated) stats.totalRotations++;
+  if (entry.exhausted) stats.totalExhausted++;
+  stats.lastRequestAt = entry.timestamp;
+
+  await env.ROUTE429_KV.put(statsKey(projectName), JSON.stringify(stats));
+}
+
 // ── Main Proxy Handler ────────────────────────────────────────────────────
 
 /**
  * Proxy a request through the given project config with key rotation.
  *
- * @param request  - The incoming client request.
- * @param config   - The project configuration loaded from KV.
+ * @param request   - The incoming client request.
+ * @param config    - The project configuration loaded from KV.
  * @param proxyPath - The path portion after `/p/<project>/` to forward upstream.
+ * @param env       - Cloudflare env bindings (for KV access).
+ * @param ctx       - Execution context (for waitUntil).
  */
 export async function handleProxy(
   request: Request,
   config: ProjectConfig,
-  proxyPath: string
+  proxyPath: string,
+  env: Env,
+  ctx: ExecutionContext
 ): Promise<Response> {
+  const startTime = Date.now();
   const requestOrigin = request.headers.get("Origin");
   const corsHeaders = buildCorsHeaders(requestOrigin, config.allowedOrigins);
 
@@ -191,6 +240,21 @@ export async function handleProxy(
       console.error(
         `[Route429:${config.name}] Fetch failed on attempt ${attempt + 1}: ${message}`
       );
+
+      // Log the fetch error
+      ctx.waitUntil(
+        appendLog(env, config.name, {
+          timestamp: new Date().toISOString(),
+          method: request.method,
+          path: proxyPath,
+          status: 502,
+          keysAttempted: attempt + 1,
+          rotated: attempt > 0,
+          exhausted: false,
+          durationMs: Date.now() - startTime,
+        })
+      );
+
       return errorResponse(
         { error: "upstream_error", message: `Upstream fetch failed: ${message}` },
         502,
@@ -216,6 +280,20 @@ export async function handleProxy(
     // Success (or any non-429 status) — forward to client
     roundRobinCounters.set(config.name, (keyIndex + 1) % keys.length);
 
+    // Log successful request
+    ctx.waitUntil(
+      appendLog(env, config.name, {
+        timestamp: new Date().toISOString(),
+        method: request.method,
+        path: proxyPath,
+        status: lastResponse.status,
+        keysAttempted: attempt + 1,
+        rotated: attempt > 0,
+        exhausted: false,
+        durationMs: Date.now() - startTime,
+      })
+    );
+
     const responseHeaders = new Headers(lastResponse.headers);
     for (const [key, value] of Object.entries(corsHeaders)) {
       responseHeaders.set(key, value);
@@ -233,6 +311,20 @@ export async function handleProxy(
 
   console.error(
     `[Route429:${config.name}] All ${maxRetries} keys exhausted. Returning 503.`
+  );
+
+  // Log exhaustion
+  ctx.waitUntil(
+    appendLog(env, config.name, {
+      timestamp: new Date().toISOString(),
+      method: request.method,
+      path: proxyPath,
+      status: 503,
+      keysAttempted: maxRetries,
+      rotated: maxRetries > 1,
+      exhausted: true,
+      durationMs: Date.now() - startTime,
+    })
   );
 
   const extraHeaders: Record<string, string> = {};

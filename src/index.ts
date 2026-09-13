@@ -72,7 +72,7 @@ export default {
         }
 
         // Forward to the proxy engine
-        return handleProxy(request, projectConfig as any, proxyPath);
+        return handleProxy(request, projectConfig as any, proxyPath, env, ctx);
       }
     }
 

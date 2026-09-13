@@ -9,9 +9,13 @@ import {
   type User,
   type ProjectConfig,
   type Provider,
+  type LogEntry,
+  type ProjectStats,
   PROVIDER_PRESETS,
   userKey,
   projectKey,
+  logKey,
+  statsKey,
   jsonResponse,
 } from "./types";
 import { authenticateRequest } from "./auth";
@@ -344,6 +348,10 @@ async function handleDeleteProject(
   // Delete project
   await env.ROUTE429_KV.delete(projectKey(name));
 
+  // Clean up logs and stats
+  await env.ROUTE429_KV.delete(logKey(name));
+  await env.ROUTE429_KV.delete(statsKey(name));
+
   // Remove from user's project list
   const user = await env.ROUTE429_KV.get<User>(userKey(email), "json");
   if (user) {
@@ -352,6 +360,34 @@ async function handleDeleteProject(
   }
 
   return jsonResponse({ message: `Project '${name}' deleted.` }, 200);
+}
+
+/** GET /api/projects/:name/logs — Get logs and stats for a project. */
+async function handleGetLogs(
+  env: Env,
+  email: string,
+  name: string
+): Promise<Response> {
+  const project = await env.ROUTE429_KV.get<ProjectConfig>(
+    projectKey(name),
+    "json"
+  );
+  if (!project) {
+    return jsonResponse({ error: "not_found", message: "Project not found." }, 404);
+  }
+  if (project.owner !== email) {
+    return jsonResponse({ error: "forbidden", message: "Not your project." }, 403);
+  }
+
+  const logsRaw = await env.ROUTE429_KV.get(logKey(name));
+  const logs: LogEntry[] = logsRaw ? JSON.parse(logsRaw) : [];
+
+  const statsRaw = await env.ROUTE429_KV.get(statsKey(name));
+  const stats: ProjectStats = statsRaw
+    ? JSON.parse(statsRaw)
+    : { totalRequests: 0, totalRotations: 0, totalExhausted: 0, lastRequestAt: null };
+
+  return jsonResponse({ stats, logs: logs.reverse() }, 200);
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -408,7 +444,14 @@ export async function handleProjects(
   }
 
   // Route: /api/projects/:name
-  const projectName = subpath.split("/")[0];
+  const parts = subpath.split("/");
+  const projectName = parts[0];
+  const action = parts[1]; // e.g. "logs"
+
+  // Route: /api/projects/:name/logs
+  if (action === "logs" && request.method === "GET") {
+    return handleGetLogs(env, email, projectName);
+  }
 
   if (request.method === "GET") return handleGetProject(env, email, projectName);
   if (request.method === "PUT") return handleUpdateProject(request, env, email, projectName);
