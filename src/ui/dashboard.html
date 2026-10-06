@@ -250,6 +250,23 @@
     </div>
   </div>
 
+  <!-- Confirm Dialog (in-page, so it can't be suppressed like a native confirm()) -->
+  <div class="fixed inset-0 bg-on-background/20 backdrop-blur-sm z-[60] flex items-center justify-center p-4 hide" id="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <div class="bg-surface-container-lowest rounded-xl shadow-lg w-full max-w-md border border-outline-variant/40 overflow-hidden">
+      <div class="p-6 flex items-start gap-3">
+        <span class="material-symbols-outlined text-error shrink-0">warning</span>
+        <div>
+          <h2 id="confirmTitle" class="font-headline-md text-lg font-medium text-on-surface break-words"></h2>
+          <p id="confirmMessage" class="font-body-sm text-sm text-on-surface-variant mt-2"></p>
+        </div>
+      </div>
+      <div class="px-6 py-4 border-t border-outline-variant/40 bg-surface-container-low flex justify-end gap-3">
+        <button type="button" id="confirmCancelBtn" class="px-4 py-2 rounded-lg font-body-md border border-outline-variant/40 bg-surface hover:bg-surface-container text-on-surface transition-colors shadow-sm">Cancel</button>
+        <button type="button" id="confirmOkBtn" class="px-4 py-2 rounded-lg font-body-md bg-error text-on-error hover:opacity-90 transition-opacity shadow-sm"></button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // ── State ──────────────────────────────────────────────────────────
     const state = {
@@ -791,9 +808,48 @@
       }
     }
 
+    // ── Confirm Dialog ─────────────────────────────────────────────────
+    // In-page replacement for window.confirm(): embedded browsers and in-app
+    // WebViews can suppress or auto-answer native dialogs. `message` is HTML,
+    // so escape any user data with escHtml(). Resolves true only on the OK button.
+    function confirmAction({ title, message, confirmLabel }) {
+      const modal = document.getElementById('confirm-modal');
+      const okBtn = document.getElementById('confirmOkBtn');
+      const cancelBtn = document.getElementById('confirmCancelBtn');
+      document.getElementById('confirmTitle').textContent = title;
+      document.getElementById('confirmMessage').innerHTML = message;
+      okBtn.textContent = confirmLabel;
+      modal.classList.remove('hide');
+      cancelBtn.focus(); // safe default: Enter cancels
+
+      return new Promise(resolve => {
+        const close = (result) => {
+          modal.classList.add('hide');
+          okBtn.removeEventListener('click', onOk);
+          cancelBtn.removeEventListener('click', onCancel);
+          modal.removeEventListener('click', onBackdrop);
+          document.removeEventListener('keydown', onKey, true);
+          resolve(result);
+        };
+        const onOk = () => close(true);
+        const onCancel = () => close(false);
+        const onBackdrop = (e) => { if (e.target === modal) close(false); };
+        const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); close(false); } };
+        okBtn.addEventListener('click', onOk);
+        cancelBtn.addEventListener('click', onCancel);
+        modal.addEventListener('click', onBackdrop);
+        document.addEventListener('keydown', onKey, true);
+      });
+    }
+
     // ── Delete ─────────────────────────────────────────────────────────
     async function confirmDelete(name) {
-      if (!confirm(`Delete project "${name}"? This cannot be undone.`)) return;
+      const ok = await confirmAction({
+        title: `Delete project "${name}"?`,
+        message: `This permanently deletes <span class="font-medium text-on-surface">${escHtml(name)}</span> along with its API keys, logs and stats. Apps using its proxy URL will stop working immediately. This cannot be undone.`,
+        confirmLabel: 'Delete project',
+      });
+      if (!ok) return;
       try {
         await api('DELETE', `/api/projects/${name}`);
         if (state.selectedProject === name) state.selectedProject = null;
@@ -820,7 +876,12 @@
     }
 
     async function deleteKey(projectName, keyIndex) {
-      if (!confirm('Remove this API key from the pool?')) return;
+      const ok = await confirmAction({
+        title: 'Remove this API key?',
+        message: `Key #${keyIndex + 1} will be removed from the pool and no longer used for requests.`,
+        confirmLabel: 'Remove key',
+      });
+      if (!ok) return;
       try {
         await api('PUT', `/api/projects/${projectName}`, { removeKeyIndex: keyIndex });
         showToast('Key removed.');
