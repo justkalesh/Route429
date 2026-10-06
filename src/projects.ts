@@ -117,7 +117,7 @@ async function handleCreateProject(
 
   if (!targetBaseUrl || !validateUrl(targetBaseUrl)) {
     return jsonResponse(
-      { error: "invalid_url", message: "A valid TARGET_BASE_URL is required." },
+      { error: "invalid_url", message: "A valid target base URL is required." },
       400
     );
   }

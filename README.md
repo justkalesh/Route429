@@ -89,7 +89,7 @@ Request → Parse Project from URL → Load Config from KV
 By default, anyone who knows your proxy URL can use it. To lock it down, set a **Proxy Secret** in your project settings. When enabled, every request must include an `X-Proxy-Secret` header:
 
 ```bash
-curl -X POST "https://route429.dev/p/my-project/v1/chat/completions" \
+curl -X POST "https://route429.parth-ie-kalash.workers.dev/p/my-project/v1/chat/completions" \
   -H "Content-Type: application/json" \
   -H "X-Proxy-Secret: your-secret-here" \
   -d '{"messages":[{"role":"user","content":"Hello!"}]}'

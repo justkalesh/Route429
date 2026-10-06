@@ -58,6 +58,7 @@ Route429 is a stateless (edge-deployed) proxy and multi-tenant SaaS platform tha
 | CORS abuse | Configurable `ALLOWED_ORIGINS` per project. |
 | Upstream URL injection | `TARGET_BASE_URL` is configured per project in the dashboard; the client only controls the trailing path. |
 | Unauthorized proxy usage | Optional per-project **Proxy Secret** (`X-Proxy-Secret` header) restricts who can use the endpoint. |
+| Cross-tenant name collision | Project names are a **global namespace** (`projects:<name>`), resolved from the proxy URL (`/p/<name>/`) which carries no owner segment. A `409` on create reveals that a name is already taken by *someone*, but config and keys stay owner-gated (`project.owner === email`) — only the existence of a name leaks, never its contents. |
 
 ### 5. Proxy Secret (Plain-Text Comparison)
 

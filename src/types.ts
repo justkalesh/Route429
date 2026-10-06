@@ -6,18 +6,6 @@
 export interface Env {
   /** Cloudflare KV namespace for storing users, sessions, and projects */
   ROUTE429_KV: KVNamespace;
-
-  // ── Legacy env vars (fallback for backward compat) ────────────────────
-  /** JSON-encoded string array of API keys */
-  API_KEYS?: string;
-  /** Upstream API base URL */
-  TARGET_BASE_URL?: string;
-  /** Header name for key attachment */
-  API_KEY_HEADER?: string;
-  /** Prefix prepended to key value */
-  API_KEY_PREFIX?: string;
-  /** Comma-separated CORS origins */
-  ALLOWED_ORIGINS?: string;
 }
 
 // ── Provider Presets ───────────────────────────────────────────────────────
