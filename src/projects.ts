@@ -281,6 +281,15 @@ async function handleUpdateProject(
         400
       );
     }
+    // Reject masked keys echoed back from a GET (e.g. an outdated dashboard tab);
+    // saving them would silently replace the real keys.
+    const maskedExisting = new Set(project.apiKeys.map(maskApiKey));
+    if (body.apiKeys.some((k) => maskedExisting.has(k.trim()))) {
+      return jsonResponse(
+        { error: "masked_keys", message: "These look like masked copies of the existing keys. Send the full key values." },
+        400
+      );
+    }
     project.apiKeys = body.apiKeys.map((k) => k.trim());
   }
   // Append a single key to the pool
@@ -392,6 +401,12 @@ async function handleGetLogs(
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
+/** Mask a single API key for client-side display. */
+function maskApiKey(key: string): string {
+  if (key.length <= 10) return `${key.slice(0, 3)}***`;
+  return `${key.slice(0, 6)}...${key.slice(-4)}`;
+}
+
 /** Mask API keys in project config for client-side display. */
 function maskProjectKeys(project: ProjectConfig): Record<string, unknown> {
   const maskedSecret = project.proxySecret
@@ -402,10 +417,7 @@ function maskProjectKeys(project: ProjectConfig): Record<string, unknown> {
 
   return {
     ...project,
-    apiKeys: project.apiKeys.map((k) => {
-      if (k.length <= 10) return `${k.slice(0, 3)}***`;
-      return `${k.slice(0, 6)}...${k.slice(-4)}`;
-    }),
+    apiKeys: project.apiKeys.map(maskApiKey),
     keyCount: project.apiKeys.length,
     proxySecret: maskedSecret,
     hasProxySecret: !!project.proxySecret,

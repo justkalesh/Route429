@@ -317,6 +317,16 @@
     footer { flex-direction: column; gap: 24px; text-align: center; }
   }
 
+  @media (max-width:640px){
+    nav, header.hero, section, footer, .wrap{ padding-left:20px; padding-right:20px; }
+    header.hero{ padding-top:44px; }
+    section{ padding-top:76px; }
+    .final-cta{ padding-top:96px; }
+    .cta-row{ margin-bottom:52px; }
+    .doc-section{ padding:22px; }
+    .scroll-top{ bottom:20px; right:20px; width:44px; height:44px; }
+  }
+
   @media (prefers-reduced-motion: reduce){
     html{scroll-behavior:auto;}
     .key-chip{transition:none;}

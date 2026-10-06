@@ -141,6 +141,9 @@
       </div>
     </nav>
 
+    <!-- Mobile sidebar backdrop -->
+    <div id="sidebarBackdrop" class="fixed inset-0 bg-on-background/30 z-10 hidden md:hidden" onclick="closeSidebar()"></div>
+
     <!-- Main Canvas -->
     <main class="flex-1 flex flex-col h-full bg-background overflow-hidden relative">
       <!-- Mobile header -->
@@ -149,7 +152,7 @@
           <span class="material-symbols-outlined text-primary">route</span>
           <span class="font-headline-md font-bold text-primary">Route429</span>
         </div>
-        <button class="text-on-surface-variant" onclick="document.getElementById('sidebar').classList.toggle('-translate-x-full')">
+        <button class="text-on-surface-variant" onclick="openSidebar()">
           <span class="material-symbols-outlined">menu</span>
         </button>
       </header>
@@ -200,6 +203,7 @@
                 <span class="font-body-md font-medium text-on-surface">Custom</span>
               </label>
             </div>
+            <p id="providerLockedNote" class="hide text-xs text-on-surface-variant mt-1">Provider can't be changed after creation.</p>
           </div>
 
           <div id="customFields" class="hide space-y-4 bg-surface-container-low p-4 rounded-lg border border-outline-variant/30">
@@ -217,11 +221,12 @@
             </div>
           </div>
           
-          <div>
+          <div id="keysGroup">
             <label class="block font-body-sm text-sm font-medium text-on-surface mb-1">Paste your API keys</label>
             <textarea id="apiKeysInput" class="w-full bg-surface border border-outline-variant/40 rounded-lg px-4 py-2 font-code-md text-sm focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all resize-y min-h-[100px]" placeholder="Key 1&#10;Key 2..." required></textarea>
             <p class="font-body-sm text-xs text-on-surface-variant mt-1">One per line. Keys are encrypted at rest.</p>
           </div>
+          <p id="keysEditNote" class="hide font-body-sm text-xs text-on-surface-variant bg-surface-container-low border border-outline-variant/30 rounded-lg p-3">API keys are managed individually from the <span class="font-medium text-on-surface">API Keys</span> table on the project page.</p>
 
           <div>
             <label class="block font-body-sm text-sm font-medium text-on-surface mb-1">Allowed Origins (CORS)</label>
@@ -341,6 +346,16 @@
       setTimeout(() => { authView.style.opacity = '1'; }, 10);
     }
 
+    // ── Sidebar (mobile drawer) ────────────────────────────────────────
+    function openSidebar() {
+      document.getElementById('sidebar').classList.remove('-translate-x-full');
+      document.getElementById('sidebarBackdrop').classList.remove('hidden');
+    }
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.add('-translate-x-full');
+      document.getElementById('sidebarBackdrop').classList.add('hidden');
+    }
+
     // ── Dashboard Init ─────────────────────────────────────────────────
     async function showDashboard() {
       const authView = document.getElementById('auth-view');
@@ -402,7 +417,7 @@
     }
 
     function selectProject(name) {
-      if (window.innerWidth < 768) document.getElementById('sidebar').classList.add('-translate-x-full');
+      if (window.innerWidth < 768) closeSidebar();
       state.selectedProject = name;
       renderProjectList();
       const project = state.projects.find(p => p.name === name);
@@ -515,7 +530,7 @@
                         <td class="py-3 px-4 font-code-md text-sm text-on-surface truncate max-w-[200px]">${escHtml(k)}</td>
                         <td class="py-3 px-4 font-body-sm text-sm text-on-surface-variant text-center">#${i + 1}</td>
                         <td class="py-3 px-4 text-right">
-                          <button class="text-on-surface-variant hover:text-error opacity-0 group-hover:opacity-100 transition-all text-xs border border-transparent hover:border-error/20 rounded px-2 py-1" onclick="deleteKey('${project.name}', ${i})" ${project.keyCount <= 1 ? 'disabled title="Cannot delete the last key"' : ''}>
+                          <button class="text-on-surface-variant hover:text-error opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all text-xs border border-transparent hover:border-error/20 rounded px-2 py-1" onclick="deleteKey('${project.name}', ${i})" ${project.keyCount <= 1 ? 'disabled title="Cannot delete the last key"' : ''}>
                             <span class="material-symbols-outlined text-sm">delete</span>
                           </button>
                         </td>
@@ -524,9 +539,9 @@
                   </tbody>
                 </table>
                 <!-- Add Key Row -->
-                <div class="border-t border-outline-variant/40 px-4 py-3 flex gap-2 bg-surface-container-low/50">
+                <div class="border-t border-outline-variant/40 px-4 py-3 flex flex-col sm:flex-row gap-2 bg-surface-container-low/50">
                   <input id="newKeyInput" type="text" class="flex-1 bg-surface border border-outline-variant/40 rounded-lg px-3 py-2 font-code-md text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" placeholder="Paste a new API key..." />
-                  <button class="bg-primary-container text-on-primary hover:opacity-90 px-4 py-2 rounded-lg transition-opacity flex items-center gap-1 text-sm shadow-sm shrink-0" onclick="addKey('${project.name}')">
+                  <button class="bg-primary-container text-on-primary hover:opacity-90 px-4 py-2 rounded-lg transition-opacity flex items-center justify-center gap-1 text-sm shadow-sm shrink-0" onclick="addKey('${project.name}')">
                     <span class="material-symbols-outlined text-sm">add</span> Add Key
                   </button>
                 </div>
@@ -569,8 +584,8 @@
                 <div class="bg-surface-container-low border-b border-outline-variant/40 px-4 py-2 flex justify-between items-center">
                   <p class="font-label-caps text-xs text-on-surface-variant font-medium">Recent Activity (last 100)</p>
                 </div>
-                <div class="max-h-[360px] overflow-y-auto" id="logTableContainer">
-                  <table class="w-full text-left border-collapse">
+                <div class="max-h-[360px] overflow-auto" id="logTableContainer">
+                  <table class="w-full min-w-[640px] text-left border-collapse">
                     <thead class="sticky top-0 z-10">
                       <tr class="bg-surface-container-low border-b border-outline-variant/40">
                         <th class="py-2 px-3 font-label-caps text-xs text-on-surface-variant font-medium">Time</th>
@@ -630,15 +645,31 @@
       }
     }
 
+    // Name, provider and keys are only set at creation. Edit mode hides/locks
+    // them: the keys we hold are masked and must never be sent back.
+    function setEditMode(isEdit) {
+      document.getElementById('nameGroup').style.display = isEdit ? 'none' : '';
+      document.getElementById('keysGroup').style.display = isEdit ? 'none' : '';
+      document.getElementById('keysEditNote').classList.toggle('hide', !isEdit);
+      document.getElementById('providerLockedNote').classList.toggle('hide', !isEdit);
+      document.getElementById('providerGrid').classList.toggle('pointer-events-none', isEdit);
+      // Disabled fields are skipped by form validation, so hidden ones can't block Save
+      document.getElementById('projectName').disabled = isEdit;
+      document.getElementById('apiKeysInput').disabled = isEdit;
+      document.querySelectorAll('#providerGrid input').forEach(input => { input.disabled = isEdit; });
+    }
+
     function openCreateModal() {
+      if (window.innerWidth < 768) closeSidebar();
       editingProject = null;
       document.getElementById('modalTitle').textContent = 'Create Proxy Project';
       document.getElementById('projectSubmitText').textContent = 'Create Project';
-      document.getElementById('nameGroup').style.display = '';
+      setEditMode(false);
       document.getElementById('projectName').value = '';
       document.getElementById('apiKeysInput').value = '';
       document.getElementById('allowedOrigins').value = '*';
       document.getElementById('proxySecret').value = '';
+      document.getElementById('proxySecret').placeholder = 'e.g., my-super-secret-key';
       document.getElementById('modalAlert').classList.add('hide');
       selectProvider('gemini');
       toggleModal('new-project-modal', true);
@@ -650,8 +681,8 @@
       editingProject = name;
       document.getElementById('modalTitle').textContent = `Edit: ${name}`;
       document.getElementById('projectSubmitText').textContent = 'Save Changes';
-      document.getElementById('nameGroup').style.display = 'none';
-      document.getElementById('apiKeysInput').value = project.apiKeys.join('\n');
+      setEditMode(true);
+      document.getElementById('apiKeysInput').value = '';
       document.getElementById('allowedOrigins').value = project.allowedOrigins;
       document.getElementById('proxySecret').value = project.hasProxySecret ? '' : '';
       document.getElementById('proxySecret').placeholder = project.hasProxySecret ? '(secret is set — enter new value to change)' : 'e.g., my-super-secret-key';
@@ -700,20 +731,25 @@
       const textEl = document.getElementById('projectSubmitText');
       alertEl.classList.add('hide');
 
-      const keysText = document.getElementById('apiKeysInput').value.trim();
-      const apiKeys = keysText.split('\n').map(k => k.trim()).filter(Boolean);
-
-      if (apiKeys.length === 0) {
-        alertEl.textContent = 'Please add at least one API key.';
-        alertEl.classList.remove('hide');
-        return;
-      }
-
       const payload = {
-        provider: selectedProvider,
-        apiKeys,
         allowedOrigins: document.getElementById('allowedOrigins').value.trim() || '*',
       };
+
+      // Provider and keys are only sent on create. On edit, keys are managed from the
+      // API Keys table — sending the masked copies back would overwrite the real ones.
+      if (!editingProject) {
+        const keysText = document.getElementById('apiKeysInput').value.trim();
+        const apiKeys = keysText.split('\n').map(k => k.trim()).filter(Boolean);
+
+        if (apiKeys.length === 0) {
+          alertEl.textContent = 'Please add at least one API key.';
+          alertEl.classList.remove('hide');
+          return;
+        }
+
+        payload.provider = selectedProvider;
+        payload.apiKeys = apiKeys;
+      }
 
       const secretVal = document.getElementById('proxySecret').value.trim();
       // Only send proxySecret if user typed something (on edit, blank means "don't change")
